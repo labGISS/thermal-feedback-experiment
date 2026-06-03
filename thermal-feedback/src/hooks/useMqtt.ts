@@ -8,7 +8,7 @@ import { MQTT_BROKER_URL, MQTT_TOPICS } from "../connection";
 const MQTT_CONFIG = {
   broker: MQTT_BROKER_URL,
   options: {
-    clientId: `thermal_feedback_client`,
+    clientId: `thermal_feedback_client` + Math.random().toString(16).substr(2, 8), // Unique client ID
     clean: true,
     connectTimeout: 4000,
     // username: MQTT_USERNAME,

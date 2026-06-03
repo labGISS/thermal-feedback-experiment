@@ -3,14 +3,14 @@ services:
   api:
     build:
       context: ./thermal-feedback-api
-    ports:
-      - "8000:8000"
     volumes:
       # Persist the SQLite database across container restarts
-      - api-db:/app/data
+      - ./api-db:/app/data
     environment:
       - DB_PATH=/app/data/thermal_feedback.db
     restart: unless-stopped
+    networks:
+      - internal
 
   frontend:
     build:
@@ -24,6 +24,12 @@ services:
     depends_on:
       - api
     restart: unless-stopped
+    networks:
+      - internal
 
 volumes:
   api-db:
+
+networks:
+  internal:
+    driver: bridge
