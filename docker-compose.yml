@@ -16,9 +16,9 @@ services:
     build:
       context: ./thermal-feedback
       args:
-        # Change this to your server's IP/hostname if deploying remotely.
-        # The browser resolves this URL, so it must be reachable from the client.
-        VITE_API_URL: http://localhost:8000
+        # Use the nginx reverse proxy path so browser requests never cross origins.
+        # Nginx already proxies /cube2/api/ → the api container on port 8000.
+        VITE_API_URL: /cube2/api
     ports:
       - "80:80"
     depends_on:
