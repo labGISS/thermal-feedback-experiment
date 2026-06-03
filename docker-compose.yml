@@ -1,0 +1,29 @@
+services:
+
+  api:
+    build:
+      context: ./thermal-feedback-api
+    ports:
+      - "8000:8000"
+    volumes:
+      # Persist the SQLite database across container restarts
+      - api-db:/app/data
+    environment:
+      - DB_PATH=/app/data/thermal_feedback.db
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./thermal-feedback
+      args:
+        # Change this to your server's IP/hostname if deploying remotely.
+        # The browser resolves this URL, so it must be reachable from the client.
+        VITE_API_URL: http://localhost:8000
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  api-db:

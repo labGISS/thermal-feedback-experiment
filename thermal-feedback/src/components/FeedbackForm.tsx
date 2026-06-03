@@ -1,0 +1,123 @@
+import { useState } from "react";
+import type { ExperimentConfig, FeedbackData, Handedness, TrialProgress } from "../types";
+import { CubeFaceSelector } from "./CubeFaceSelector";
+
+interface Props {
+  experiment: ExperimentConfig;
+  onSubmit: (feedback: FeedbackData) => void;
+  handedness: Handedness;
+  trialProgress?: TrialProgress;
+}
+
+export const FeedbackForm = ({ experiment, onSubmit, handedness, trialProgress }: Props) => {
+  const [selectedFaces, setSelectedFaces] = useState<number[]>([]);
+  const [temperatureEstimate, setTemperatureEstimate] = useState<string | undefined>(undefined);
+  const [clarityEstimate, setClarityEstimate] = useState<number | undefined>(undefined);
+
+  const isValid =
+    selectedFaces.length > 0 &&
+    (!experiment.feedbackConfig.showTemperatureEstimate || temperatureEstimate !== undefined) &&
+    clarityEstimate !== undefined;
+
+  const handleSubmit = () => {
+    onSubmit({
+      experimentId: experiment.id,
+      selectedFaces,
+      temperatureEstimate,
+      clarityEstimate,
+      timestamp: Date.now(),
+    });
+  };
+
+  return (
+    <div className="flex-1 flex items-center justify-center px-5 py-10">
+      <div className="max-w-xl w-full text-center mx-auto">
+        <h1 className="text-3xl font-semibold mb-2 text-primary">Riscontro</h1>
+        {trialProgress && (
+          <p className="text-sm text-gray-400 mb-6 uppercase tracking-widest">
+            Prova {trialProgress.current} di {trialProgress.total}
+          </p>
+        )}
+
+        <div className="flex flex-col gap-10 mt-8">
+          {/* Cube face selection */}
+          <div className="flex flex-col gap-4">
+            <label className="text-lg font-medium text-gray-900 text-left">
+              {experiment.feedbackConfig.faceSelection === "single"
+                ? "Su quale faccia hai sentito il calore?"
+                : "Su quali facce hai sentito il calore? Seleziona tutte quelle applicabili."}
+            </label>
+            <CubeFaceSelector
+              mode={experiment.feedbackConfig.faceSelection}
+              selected={selectedFaces}
+              onChange={setSelectedFaces}
+              handedness={handedness}
+            />
+          </div>
+
+          {/* Temperature estimate */}
+          {experiment.feedbackConfig.showTemperatureEstimate && (
+            <div className="flex flex-col gap-3">
+              <label className="text-lg font-medium text-gray-900 text-left">
+                Quanto era caldo?
+              </label>
+              <div className="flex gap-2 justify-center">
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <button
+                    key={n}
+                    className={`w-14 h-14 rounded-xl border-2 text-xl font-semibold cursor-pointer transition-all ${
+                      temperatureEstimate === String(n)
+                        ? "bg-accent border-accent text-white"
+                        : "bg-white border-gray-200 hover:border-primary"
+                    }`}
+                    onClick={() => setTemperatureEstimate(String(n))}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+              <div className="flex justify-between text-xs text-gray-400 px-1">
+                <span>Poco caldo</span>
+                <span>Molto caldo</span>
+              </div>
+            </div>
+          )}
+
+          {/* Clarity estimate — every trial */}
+          <div className="flex flex-col gap-3">
+            <label className="text-lg font-medium text-gray-900 text-left">
+              Quanto eri sicuro/a nell'identificare le facce riscaldate?
+            </label>
+            <div className="flex gap-2 justify-center">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <button
+                  key={n}
+                  className={`w-14 h-14 rounded-xl border-2 text-xl font-semibold cursor-pointer transition-all ${
+                    clarityEstimate === n
+                      ? "bg-accent border-accent text-white"
+                      : "bg-white border-gray-200 hover:border-primary"
+                  }`}
+                  onClick={() => setClarityEstimate(n)}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+            <div className="flex justify-between text-xs text-gray-400 px-1">
+              <span>Per niente sicuro</span>
+              <span>Molto sicuro</span>
+            </div>
+          </div>
+
+          <button
+            className="bg-primary text-white border-0 px-12 py-4 text-base font-medium rounded-lg cursor-pointer hover:bg-[#34495e] transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+            onClick={handleSubmit}
+            disabled={!isValid}
+          >
+            Invia riscontro
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
