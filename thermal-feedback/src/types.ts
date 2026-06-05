@@ -85,6 +85,7 @@ export interface PostSessionData {
   overallComfort: number; // 1–5
   perceivedIntensity: number; // 1=too weak, 3=just right, 5=too strong
   twoBackDifficulty: number; // 1–5
+  feedbackClarity?: number; // 1–5, optional
   discomfortOrPain: boolean;
   timestamp: number;
 }

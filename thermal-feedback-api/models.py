@@ -80,5 +80,6 @@ class PostSession(Base):
     overall_comfort = Column(Integer, nullable=False)       # 1–5
     perceived_intensity = Column(Integer, nullable=False)      # 1–5
     two_back_difficulty = Column(Integer, nullable=False)   # 1–5
+    feedback_clarity = Column(Integer, nullable=True)        # 1–5, optional
     discomfort_or_pain = Column(Boolean, nullable=False)
     timestamp = Column(Integer, nullable=False)             # Unix ms

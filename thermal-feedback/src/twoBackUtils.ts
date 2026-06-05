@@ -2,7 +2,7 @@
 export const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 /** Milliseconds each letter is displayed */
-export const LETTER_INTERVAL_MS = 2500;
+export const LETTER_INTERVAL_MS = 1500;
 
 /** Target proportion of letters that are 2-back matches */
 export const MATCH_PROBABILITY = 0.3;

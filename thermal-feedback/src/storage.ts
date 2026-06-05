@@ -135,7 +135,7 @@ export const submitSessionData = (participantNumber: number): void => {
     postSession: (() => {
       const ps = getAllPostSessions().find((p) => p.participantNumber === participantNumber);
       // Guard against legacy localStorage entries where numeric fields were stored as strings
-      if (!ps || typeof ps.perceivedIntensity !== "number") return null;
+      //if (!ps || typeof ps.perceivedIntensity !== "number") return null;
       return ps;
     })(),
   };

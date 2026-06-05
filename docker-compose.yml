@@ -42,9 +42,6 @@ services:
     networks:
       - internal
 
-volumes:
-  api-db:
-
 networks:
   internal:
     driver: bridge

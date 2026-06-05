@@ -119,6 +119,7 @@ def create_session(payload: SessionPayload, db: DbSession = Depends(get_db)):
             overall_comfort=ps.overallComfort,
             perceived_intensity=ps.perceivedIntensity,
             two_back_difficulty=ps.twoBackDifficulty,
+            feedback_clarity=ps.feedbackClarity,
             discomfort_or_pain=ps.discomfortOrPain,
             timestamp=ps.timestamp,
         ))
@@ -212,6 +213,7 @@ def _build_session_out(session: Session, db: DbSession) -> SessionOut:
             overallComfort=post_session.overall_comfort,
             perceivedIntensity=post_session.perceived_intensity,
             twoBackDifficulty=post_session.two_back_difficulty,
+            feedbackClarity=post_session.feedback_clarity,
             discomfortOrPain=post_session.discomfort_or_pain,
             timestamp=post_session.timestamp,
         ) if post_session else None,

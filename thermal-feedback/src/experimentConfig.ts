@@ -7,7 +7,7 @@ export const PULSE_DURATION_MS = 145;
 
 export const PAUSE_MS = 1000; // default pause between pulses, in milliseconds
 
-export const COUNTDOWN_SECONDS = 8; // seconds for countdown before each trial
+export const COUNTDOWN_SECONDS = 0; // seconds for countdown before each trial
 
 export const experiments: ExperimentConfig[] = [
   {
@@ -44,6 +44,6 @@ export const experiments: ExperimentConfig[] = [
       faceSelection: "multi",
       showTemperatureEstimate: true,
     },
-    thermalDelay_ms: 10_000,
+    thermalDelay_ms: 3_000,
   },
 ];
