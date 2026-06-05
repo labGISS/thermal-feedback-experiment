@@ -29,6 +29,16 @@ export const FeedbackForm = ({ experiment, onSubmit, handedness, trialProgress }
     });
   };
 
+  const handleSubmitNoFeedback = () => {
+    onSubmit({
+      experimentId: experiment.id,
+      selectedFaces: [],
+      temperatureEstimate: "0",
+      clarityEstimate: 0,
+      timestamp: Date.now(),
+    });
+  }
+
   return (
     <div className="flex-1 flex items-center justify-center px-5 py-10">
       <div className="max-w-xl w-full text-center mx-auto">
@@ -39,7 +49,7 @@ export const FeedbackForm = ({ experiment, onSubmit, handedness, trialProgress }
           </p>
         )}
 
-        <div className="flex flex-col gap-10 mt-8">
+        <div className="flex flex-col gap-4 mt-8">
           {/* Cube face selection */}
           <div className="flex flex-col gap-4">
             <label className="text-lg font-medium text-gray-900 text-left">
@@ -57,7 +67,7 @@ export const FeedbackForm = ({ experiment, onSubmit, handedness, trialProgress }
 
           {/* Temperature estimate */}
           {experiment.feedbackConfig.showTemperatureEstimate && (
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2">
               <label className="text-lg font-medium text-gray-900 text-left">
                 Quanto era caldo?
               </label>
@@ -84,7 +94,7 @@ export const FeedbackForm = ({ experiment, onSubmit, handedness, trialProgress }
           )}
 
           {/* Clarity estimate — every trial */}
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-2">
             <label className="text-lg font-medium text-gray-900 text-left">
               Quanto eri sicuro/a nell'identificare le facce riscaldate?
             </label>
@@ -116,6 +126,17 @@ export const FeedbackForm = ({ experiment, onSubmit, handedness, trialProgress }
           >
             Invia riscontro
           </button>
+
+          <div className="flex flex-col gap-4 mt-4">
+            <h6 className="text-lg font-medium text-gray-900 text-center">Se non hai avvertito alcuno stimolo termico, puoi saltare questa sezione cliccando sul pulsante "Salta".</h6>
+            <button
+              className="bg-[#d74248] text-white border-0 px-12 py-4 text-base font-medium rounded-lg cursor-pointer hover:bg-[#FF6666] transition-colors"
+              onClick={handleSubmitNoFeedback}
+            >
+            Salta
+            </button>
+          </div>
+
         </div>
       </div>
     </div>
