@@ -12,6 +12,21 @@ services:
     networks:
       - internal
 
+  results:
+    build:
+      context: ./thermal-results
+    volumes:
+      - ./api-db:/app/data
+    environment:
+      - DB_PATH=/app/data/thermal_feedback.db
+    ports:
+      - "5000:5000"
+    depends_on:
+      - api
+    restart: unless-stopped
+    networks:
+      - internal
+
   frontend:
     build:
       context: ./thermal-feedback

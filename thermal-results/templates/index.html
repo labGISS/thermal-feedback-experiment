@@ -1,0 +1,1273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Thermal Feedback — Statistics</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: #f4f6f9;
+      color: #1e293b;
+      line-height: 1.55;
+    }
+
+    header {
+      background: #1e3a5f;
+      color: #fff;
+      padding: 1.25rem 2rem;
+    }
+    header h1 { font-size: 1.4rem; font-weight: 700; letter-spacing: .02em; }
+    header p  { font-size: .85rem; opacity: .75; margin-top: .2rem; }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 1.5rem 1.5rem 3rem; }
+
+    /* ---- section ---- */
+    section { margin-top: 2rem; }
+    section h2 {
+      font-size: 1.05rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .06em; color: #1e3a5f;
+      border-bottom: 2px solid #1e3a5f; padding-bottom: .3rem; margin-bottom: 1rem;
+    }
+    section h3 {
+      font-size: .95rem; font-weight: 600; color: #334155; margin: 1rem 0 .5rem;
+    }
+
+    /* ---- cards grid ---- */
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: .75rem; }
+    .card {
+      background: #fff; border-radius: 8px; padding: 1rem 1.25rem;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+    }
+    .card .label { font-size: .72rem; text-transform: uppercase; letter-spacing: .07em; color: #64748b; }
+    .card .value { font-size: 1.6rem; font-weight: 700; color: #1e3a5f; line-height: 1.1; margin-top: .2rem; }
+    .card .sub   { font-size: .78rem; color: #64748b; margin-top: .15rem; }
+
+    /* ---- chart grid ---- */
+    .chart-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    .chart-box {
+      background: #fff; border-radius: 8px; padding: 1rem 1.25rem;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+    }
+    .chart-box h3 {
+      font-size: .82rem; font-weight: 600; text-transform: uppercase;
+      letter-spacing: .06em; color: #475569; margin: 0 0 .75rem;
+    }
+    .chart-box canvas { display: block; }
+
+    /* ---- comparison grid ---- */
+    .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    @media (max-width: 640px) { .compare { grid-template-columns: 1fr; } }
+    .cond-box {
+      background: #fff; border-radius: 8px; padding: 1rem 1.25rem;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+    }
+    .cond-box h3 { margin-top: 0; color: #1e3a5f; }
+
+    /* ---- tables ---- */
+    .tbl-wrap { overflow-x: auto; }
+    table {
+      width: 100%; border-collapse: collapse; font-size: .85rem;
+      background: #fff; border-radius: 8px; overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+    }
+    thead th {
+      background: #1e3a5f; color: #fff; text-align: left;
+      padding: .55rem .75rem; font-weight: 600; font-size: .78rem;
+      text-transform: uppercase; letter-spacing: .05em;
+    }
+    tbody tr:nth-child(even) { background: #f8fafc; }
+    tbody td { padding: .5rem .75rem; vertical-align: middle; }
+    .badge {
+      display: inline-block; border-radius: 4px; padding: .1rem .45rem;
+      font-size: .75rem; font-weight: 600;
+    }
+    .badge-ok  { background: #dcfce7; color: #15803d; }
+    .badge-err { background: #fee2e2; color: #b91c1c; }
+
+    /* ---- confusion matrix ---- */
+    .cm-wrap { display: inline-block; }
+    .cm table { margin: 0; width: auto; }
+    .cm thead th { padding: .4rem .8rem; text-align: center; }
+    .cm tbody td { text-align: center; padding: .4rem .8rem; }
+    .cm .cm-diag { background: #dbeafe; font-weight: 700; color: #1e40af; }
+    .cm .cm-off  { background: #fee2e2; color: #b91c1c; }
+    .cm .cm-zero { color: #94a3b8; }
+
+    /* ---- participant tabs ---- */
+    .tabs { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    .tab-btn {
+      border: 2px solid #1e3a5f; background: #fff; color: #1e3a5f;
+      border-radius: 6px; padding: .35rem .9rem; cursor: pointer; font-size: .85rem; font-weight: 600;
+      transition: background .15s, color .15s;
+    }
+    .tab-btn.active, .tab-btn:hover { background: #1e3a5f; color: #fff; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    .meta-row { display: flex; gap: 1.5rem; flex-wrap: wrap; font-size: .85rem; margin-bottom: .75rem; }
+    .meta-row span { color: #64748b; }
+    .meta-row strong { color: #1e293b; }
+
+    .note { font-size: .78rem; color: #64748b; margin-top: .5rem; }
+
+    /* ---- fullscreen RT modal ---- */
+    .rt-modal-overlay {
+      display: none; position: fixed; inset: 0; z-index: 400;
+      background: rgba(10,15,30,.88); flex-direction: column;
+    }
+    .rt-modal-overlay.open { display: flex; }
+    .rt-modal-inner {
+      display: flex; flex-direction: column;
+      width: 100%; height: 100%;
+      padding: 1rem 1.5rem 1.25rem;
+    }
+    .rt-modal-topbar {
+      display: flex; align-items: center; gap: 1rem;
+      flex-wrap: wrap; margin-bottom: .75rem;
+    }
+    .rt-modal-topbar h2 {
+      font-size: 1rem; font-weight: 700; color: #e2e8f0;
+      flex: 1; margin: 0;
+    }
+    .rt-modal-controls {
+      display: flex; gap: .5rem; align-items: center; flex-wrap: wrap;
+    }
+    .rt-modal-controls label {
+      font-size: .78rem; color: #94a3b8; margin-right: .15rem;
+    }
+    .rt-modal-controls select {
+      font-size: .82rem; padding: .25rem .5rem; border-radius: 5px;
+      border: 1px solid #334155; background: #1e293b; color: #e2e8f0;
+      cursor: pointer;
+    }
+    .rt-modal-controls select:focus { outline: 2px solid #3b82f6; }
+    .rt-close {
+      background: rgba(255,255,255,.1); border: 1.5px solid rgba(255,255,255,.25);
+      color: #e2e8f0; border-radius: 6px; padding: .3rem .8rem;
+      font-size: .85rem; cursor: pointer; transition: background .15s;
+      white-space: nowrap;
+    }
+    .rt-close:hover { background: rgba(255,255,255,.22); }
+    .rt-canvas-wrap {
+      flex: 1; position: relative; min-height: 0;
+      background: #0f172a; border-radius: 10px; padding: .75rem 1rem;
+    }
+    .rt-canvas-wrap canvas { position: absolute; inset: .75rem 1rem; }
+    .rt-legend-note {
+      font-size: .72rem; color: #64748b; margin-top: .4rem; text-align: right;
+    }
+
+    /* ---- expand button on chart-box ---- */
+    .chart-box { position: relative; }
+    .chart-expand {
+      position: absolute; top: .6rem; right: .6rem;
+      background: #e2e8f0; border: none; border-radius: 4px;
+      padding: .2rem .38rem; font-size: .75rem; cursor: pointer;
+      color: #475569; line-height: 1; transition: background .15s;
+      z-index: 2;
+    }
+    .chart-expand:hover { background: #1e3a5f; color: #fff; }
+
+    /* ---- help tooltip ---- */
+    .tip {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 15px; height: 15px; border-radius: 50%;
+      background: #cbd5e1; color: #334155;
+      font-size: .65rem; font-weight: 700; line-height: 1;
+      cursor: pointer; vertical-align: middle; margin-left: .3rem;
+      border: none; flex-shrink: 0;
+      position: relative;
+    }
+    .tip:hover { background: #1e3a5f; color: #fff; }
+    /* floating popover */
+    .tip-pop {
+      display: none; position: absolute; z-index: 200;
+      bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+      width: 230px; background: #1e293b; color: #e2e8f0;
+      font-size: .78rem; font-weight: 400; line-height: 1.45;
+      padding: .55rem .75rem; border-radius: 6px;
+      box-shadow: 0 4px 16px rgba(0,0,0,.35);
+      pointer-events: none; text-transform: none; letter-spacing: 0;
+    }
+    .tip-pop::after {
+      content: ''; position: absolute; top: 100%; left: 50%;
+      transform: translateX(-50%);
+      border: 6px solid transparent; border-top-color: #1e293b;
+    }
+    .tip:hover .tip-pop,
+    .tip:focus .tip-pop { display: block; }
+
+    /* ---- guide panel ---- */
+    .guide-overlay {
+      display: none; position: fixed; inset: 0; z-index: 300;
+      background: rgba(0,0,0,.45);
+    }
+    .guide-overlay.open { display: block; }
+    .guide-panel {
+      position: fixed; top: 0; right: 0; bottom: 0; width: min(420px, 100vw);
+      background: #fff; overflow-y: auto; padding: 1.5rem 1.5rem 2rem;
+      box-shadow: -4px 0 24px rgba(0,0,0,.18);
+      display: flex; flex-direction: column; gap: 0;
+    }
+    .guide-panel h2 {
+      font-size: 1rem; font-weight: 700; color: #1e3a5f;
+      margin-bottom: 1.25rem; border-bottom: 2px solid #1e3a5f;
+      padding-bottom: .35rem;
+    }
+    .guide-close {
+      position: absolute; top: 1rem; right: 1.25rem;
+      background: none; border: none; font-size: 1.4rem;
+      cursor: pointer; color: #64748b; line-height: 1;
+    }
+    .guide-close:hover { color: #1e293b; }
+    .guide-entry { margin-bottom: 1.1rem; }
+    .guide-entry dt {
+      font-size: .82rem; font-weight: 700; color: #1e3a5f;
+      margin-bottom: .2rem;
+    }
+    .guide-entry dd {
+      font-size: .82rem; color: #334155; line-height: 1.5; margin: 0;
+    }
+    .guide-section-title {
+      font-size: .7rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .08em; color: #94a3b8;
+      margin: 1.25rem 0 .6rem; border-top: 1px solid #e2e8f0; padding-top: .75rem;
+    }
+
+    /* ---- header help button ---- */
+    .header-help {
+      position: absolute; top: 50%; right: 2rem; transform: translateY(-50%);
+      background: rgba(255,255,255,.15); border: 1.5px solid rgba(255,255,255,.4);
+      color: #fff; border-radius: 6px; padding: .3rem .85rem;
+      font-size: .82rem; font-weight: 600; cursor: pointer;
+      transition: background .15s;
+    }
+    .header-help:hover { background: rgba(255,255,255,.28); }
+    header { position: relative; }
+  </style>
+</head>
+<body>
+
+<div class="guide-overlay" id="guideOverlay" onclick="closeGuide(event)">
+  <div class="guide-panel" role="dialog" aria-modal="true" aria-label="Statistics Guide">
+    <button class="guide-close" onclick="toggleGuide()" aria-label="Close guide">&times;</button>
+    <h2>Statistics Guide</h2>
+
+    <p class="guide-section-title">Experiment Design</p>
+    <dl>
+      <div class="guide-entry">
+        <dt>Normal condition (experiment 1)</dt>
+        <dd>The participant touches the thermal device and reports which finger(s) feel warm, with no secondary task. Baseline measure of thermal localization ability.</dd>
+      </div>
+      <div class="guide-entry">
+        <dt>Dual-Task condition (experiment 2)</dt>
+        <dd>Same thermal task performed simultaneously with a 2-back cognitive task. Measures whether cognitive load degrades thermal perception.</dd>
+      </div>
+      <div class="guide-entry">
+        <dt>Trial</dt>
+        <dd>A single stimulus event: 1, 2, or 3 fingers are heated and the participant selects which fingers they felt. Each condition has 7 trials.</dd>
+      </div>
+      <div class="guide-entry">
+        <dt>Fingers</dt>
+        <dd>Index (finger 0), Middle (finger 1), Ring (finger 2). These are the three fingers instrumented with thermal actuators.</dd>
+      </div>
+    </dl>
+
+    <p class="guide-section-title">Accuracy Metrics</p>
+    <dl>
+      <div class="guide-entry">
+        <dt>Exact Match (%)</dt>
+        <dd>Percentage of trials where the set of fingers reported by the participant exactly matches the set of fingers that were heated. The strictest accuracy measure — even one extra or missed finger counts as wrong.</dd>
+      </div>
+      <div class="guide-entry">
+        <dt>Per-Finger Hit Rate (%)</dt>
+        <dd>For each individual finger that was heated, was it reported? Aggregated across all fingers and trials. Less strict than Exact Match — partial credit for getting some fingers right.</dd>
+      </div>
+      <div class="guide-entry">
+        <dt>TP — True Positive</dt>
+        <dd>A heated finger that the participant correctly reported as felt. Good outcome.</dd>
+      </div>
+      <div class="guide-entry">
+        <dt>FP — False Positive</dt>
+        <dd>A finger reported as felt that was <em>not</em> heated. The participant perceived a sensation that wasn't there (false alarm).</dd>
+      </div>
+      <div class="guide-entry">
+        <dt>FN — False Negative</dt>
+        <dd>A heated finger that the participant did <em>not</em> report. A missed stimulus.</dd>
+      </div>
+      <div class="guide-entry">
+        <dt>Hit Rate per finger</dt>
+        <dd>Of all the trials where a specific finger was heated, how often did the participant report feeling it? 100% means perfect detection for that finger.</dd>
+      </div>
+      <div class="guide-entry">
+        <dt>False Alarm Rate (FAR)</dt>
+        <dd>Of all the trials where a finger was <em>not</em> heated, how often did the participant wrongly report feeling it? Lower is better. A high FAR suggests the participant guessed or the neighbouring finger's heat spread.</dd>
+      </div>
+    </dl>
+
+    <p class="guide-section-title">Discrimination</p>
+    <dl>
+      <div class="guide-entry">
+        <dt>Single-Finger Discrimination</dt>
+        <dd>On trials where only one finger was heated, did the participant identify the correct finger? This isolates pure localization ability from pattern detection.</dd>
+      </div>
+      <div class="guide-entry">
+        <dt>Confusion Matrix</dt>
+        <dd>Rows = which finger was actually heated. Columns = which finger the participant reported. Diagonal cells (blue) are correct identifications. Off-diagonal cells (red) are confusions — e.g. Index heated but Middle reported.</dd>
+      </div>
+    </dl>
+
+    <p class="guide-section-title">Timing &amp; Subjective Ratings</p>
+    <dl>
+      <div class="guide-entry">
+        <dt>Response Time — RT (ms)</dt>
+        <dd>Time in milliseconds from when the participant touched the device to when they submitted their response. Shorter RT may indicate higher certainty, but very short RT can also signal impulsive responding.</dd>
+      </div>
+      <div class="guide-entry">
+        <dt>Clarity (1–5)</dt>
+        <dd>Participant's self-rated clarity of the thermal sensation: 1 = very unclear, 5 = very clear. Indicates perceived signal quality independent of objective accuracy.</dd>
+      </div>
+      <div class="guide-entry">
+        <dt>Temperature Estimate (1–5)</dt>
+        <dd>Participant's perceived intensity of the temperature change on a 1–5 scale. Not a calibrated temperature; a subjective magnitude judgment.</dd>
+      </div>
+    </dl>
+
+    <p class="guide-section-title">2-Back Cognitive Task</p>
+    <dl>
+      <div class="guide-entry">
+        <dt>2-Back task</dt>
+        <dd>A working-memory task where the participant must indicate whether the current stimulus matches the one that appeared two positions earlier in the sequence. Widely used to impose cognitive load.</dd>
+      </div>
+      <div class="guide-entry">
+        <dt>Hit Rate (2-back)</dt>
+        <dd>Percentage of actual target matches correctly detected by the participant. High hit rate = good working memory performance under load.</dd>
+      </div>
+      <div class="guide-entry">
+        <dt>Commission errors (Wrong)</dt>
+        <dd>Responses given when there was no actual match — false alarms in the 2-back task.</dd>
+      </div>
+      <div class="guide-entry">
+        <dt>Missed targets</dt>
+        <dd>Actual matches that the participant did not respond to — omission errors.</dd>
+      </div>
+    </dl>
+
+    <p class="guide-section-title">Post-Session Questionnaire</p>
+    <dl>
+      <div class="guide-entry">
+        <dt>Overall Comfort (1–5)</dt>
+        <dd>How comfortable the participant felt during the whole session. 1 = very uncomfortable, 5 = very comfortable.</dd>
+      </div>
+      <div class="guide-entry">
+        <dt>Perceived Intensity (1–5)</dt>
+        <dd>General perceived strength of the thermal stimulation across the session.</dd>
+      </div>
+      <div class="guide-entry">
+        <dt>2-Back Difficulty (1–5)</dt>
+        <dd>How difficult the participant found the 2-back cognitive task. 1 = very easy, 5 = very hard.</dd>
+      </div>
+    </dl>
+  </div>
+</div>
+
+<div class="rt-modal-overlay" id="rtModal" role="dialog" aria-modal="true" aria-label="Response Time full view">
+  <div class="rt-modal-inner">
+    <div class="rt-modal-topbar">
+      <h2 id="rtModalTitle">Response Time by Trial (ms)</h2>
+      <div class="rt-modal-controls">
+        <label for="rtModalView">Show:</label>
+        <select id="rtModalView" onchange="rtModalRedraw()">
+          <option value="agg">Aggregate (Normal vs Dual-Task)</option>
+          <option value="all_normal">All participants — Normal</option>
+          <option value="all_dual">All participants — Dual-Task</option>
+          <option value="all_both">All participants — both conditions</option>
+          {% for p in data.participants %}
+          <option value="p{{ p.participant_number }}">P{{ p.participant_number }} — both conditions</option>
+          {% endfor %}
+        </select>
+      </div>
+      <button class="rt-close" onclick="closeRTModal()">✕ Close</button>
+    </div>
+    <div class="rt-canvas-wrap">
+      <canvas id="rtModalCanvas"></canvas>
+    </div>
+    <p class="rt-legend-note">Click a legend item to show/hide that series &nbsp;·&nbsp; Scroll to zoom &nbsp;·&nbsp; Press Esc to close</p>
+  </div>
+</div>
+
+<header>
+  <h1>Thermal Feedback Experiment — Statistics</h1>
+  <p>{{ data.aggregate.n_participants }} participant{{ 's' if data.aggregate.n_participants != 1 else '' }} &middot;
+     {{ data.aggregate.total_trials }} trials</p>
+  <button class="header-help" onclick="toggleGuide()">? Statistics Guide</button>
+</header>
+
+<div class="container">
+
+  {# ── tooltip macro ───────────────────────────────────────────────────────── #}
+  {% macro tip(text) %}<button class="tip" tabindex="0" aria-label="Help">?<span class="tip-pop">{{ text }}</span></button>{% endmacro %}
+
+  {# ── AGGREGATE OVERVIEW ───────────────────────────────────────────────────── #}
+  <section>
+    <h2>Aggregate Overview</h2>
+    <div class="cards">
+      <div class="card">
+        <div class="label">Participants</div>
+        <div class="value">{{ data.aggregate.n_participants }}</div>
+      </div>
+      {% set n = data.aggregate.normal %}
+      {% set d = data.aggregate.dual_task %}
+      {% if n %}
+      <div class="card">
+        <div class="label">Normal — Exact Match {{ tip('% of trials where the participant identified exactly the right set of heated fingers. Strictest accuracy measure.') }}</div>
+        <div class="value">{{ n.exact_match_pct }}%</div>
+        <div class="sub">{{ n.exact_match_count }}/{{ n.n_trials }} trials</div>
+      </div>
+      <div class="card">
+        <div class="label">Normal — Per-Finger Hit {{ tip('Of all individual heated fingers across all trials, how many were correctly reported? Gives partial credit for near-misses.') }}</div>
+        <div class="value">{{ n.per_finger_hit_rate }}%</div>
+        <div class="sub">{{ n.total_detected }}/{{ n.total_heated }} detections</div>
+      </div>
+      {% endif %}
+      {% if d %}
+      <div class="card">
+        <div class="label">Dual-Task — Exact Match {{ tip('Same as Exact Match but recorded while the participant was simultaneously performing the 2-back cognitive task.') }}</div>
+        <div class="value">{{ d.exact_match_pct }}%</div>
+        <div class="sub">{{ d.exact_match_count }}/{{ d.n_trials }} trials</div>
+      </div>
+      <div class="card">
+        <div class="label">Dual-Task — Per-Finger Hit {{ tip('Per-finger hit rate during the dual-task condition. Compare with Normal to see the effect of cognitive load on each finger.') }}</div>
+        <div class="value">{{ d.per_finger_hit_rate }}%</div>
+        <div class="sub">{{ d.total_detected }}/{{ d.total_heated }} detections</div>
+      </div>
+      {% endif %}
+    </div>
+  </section>
+
+  {# ── SUMMARY CHARTS ───────────────────────────────────────────────────────── #}
+  {% if data.aggregate.normal and data.aggregate.dual_task %}
+  <section>
+    <h2>Summary Charts</h2>
+    <div class="chart-grid">
+
+      {# 1 — Accuracy comparison #}
+      <div class="chart-box">
+        <h3>Localization Accuracy (%)</h3>
+        <canvas id="chartAccuracy" height="220"></canvas>
+      </div>
+
+      {# 2 — Per-finger hit rate grouped bar #}
+      <div class="chart-box">
+        <h3>Per-Finger Hit Rate (%)</h3>
+        <canvas id="chartFingerHit" height="220"></canvas>
+      </div>
+
+      {# 3 — Response time #}
+      <div class="chart-box">
+        <h3>Response Time by Trial (ms)</h3>
+        <button class="chart-expand" onclick="openRTModal('agg')" title="Expand full page">⤢</button>
+        <canvas id="chartRT" height="220"></canvas>
+      </div>
+
+      {# 4 — Subjective ratings radar #}
+      <div class="chart-box">
+        <h3>Subjective Clarity &amp; Temp Estimate</h3>
+        <canvas id="chartRatings" height="220"></canvas>
+      </div>
+
+      {# 5 — 2-back outcomes (dual-task only) #}
+      {% if data.aggregate.two_back and data.aggregate.two_back.total_matches %}
+      <div class="chart-box">
+        <h3>2-Back Task Outcomes</h3>
+        <canvas id="chartTwoBack" height="220"></canvas>
+      </div>
+      {% endif %}
+
+    </div>
+  </section>
+  {% endif %}
+
+  {# ── CONDITION COMPARISON ─────────────────────────────────────────────────── #}
+  {% if data.aggregate.normal and data.aggregate.dual_task %}
+  <section>
+    <h2>Normal vs Dual-Task Comparison</h2>
+    <div class="compare">
+      {% for cond in [data.aggregate.normal, data.aggregate.dual_task] %}
+      <div class="cond-box">
+        <h3>{{ cond.condition }}</h3>
+        <div class="cards" style="grid-template-columns: 1fr 1fr; gap: .5rem; margin-bottom:.75rem;">
+          <div class="card">
+            <div class="label">Exact Match {{ tip('% of trials with a perfect finger-set match. One extra or missed finger = wrong.') }}</div>
+            <div class="value" style="font-size:1.2rem;">{{ cond.exact_match_pct }}%</div>
+            <div class="sub">{{ cond.exact_match_count }}/{{ cond.n_trials }}</div>
+          </div>
+          <div class="card">
+            <div class="label">Finger Hit Rate {{ tip('Per-finger detection rate across all trials. Heated fingers correctly reported ÷ total heated fingers.') }}</div>
+            <div class="value" style="font-size:1.2rem;">{{ cond.per_finger_hit_rate }}%</div>
+          </div>
+          <div class="card">
+            <div class="label">False Positives {{ tip('Total count of fingers selected by the participant that were NOT heated. Indicates phantom sensations or guessing.') }}</div>
+            <div class="value" style="font-size:1.2rem;">{{ cond.false_positives }}</div>
+            <div class="sub">extra fingers</div>
+          </div>
+          <div class="card">
+            <div class="label">False Negatives {{ tip('Total count of heated fingers that were NOT reported by the participant. Indicates missed or sub-threshold stimuli.') }}</div>
+            <div class="value" style="font-size:1.2rem;">{{ cond.false_negatives }}</div>
+            <div class="sub">missed fingers</div>
+          </div>
+        </div>
+        <div class="cards" style="grid-template-columns: 1fr 1fr; gap: .5rem;">
+          <div class="card">
+            <div class="label">Mean RT {{ tip('Average response time in milliseconds from device touch to response submission. High SD means variable response speed across trials.') }}</div>
+            <div class="value" style="font-size:1.1rem;">{{ cond.mean_rt_ms }} ms</div>
+            <div class="sub">SD {{ cond.sd_rt_ms }} ms</div>
+          </div>
+          <div class="card">
+            <div class="label">Mean Clarity {{ tip('Average self-rated clarity of the thermal sensation (1 = very unclear, 5 = very clear). Subjective measure independent of accuracy.') }}</div>
+            <div class="value" style="font-size:1.1rem;">{{ cond.mean_clarity }}</div>
+            <div class="sub">SD {{ cond.sd_clarity }} / 5</div>
+          </div>
+        </div>
+        {% if cond.single_finger_total %}
+        <p class="note" style="margin-top:.75rem;">
+          Single-finger discrimination: <strong>{{ cond.single_finger_correct }}/{{ cond.single_finger_total }} ({{ cond.single_finger_pct }}%)</strong>
+        </p>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  {# ── PER-PARTICIPANT DETAIL ───────────────────────────────────────────────── #}
+  <section>
+    <h2>Per-Participant Detail</h2>
+
+    <div class="tabs">
+      {% for p in data.participants %}
+      <button class="tab-btn {% if loop.first %}active{% endif %}"
+              onclick="showTab('p{{ p.participant_number }}', this)">
+        P{{ p.participant_number }}
+      </button>
+      {% endfor %}
+    </div>
+
+    {% for p in data.participants %}
+    <div class="tab-panel {% if loop.first %}active{% endif %}" id="p{{ p.participant_number }}">
+
+      {# demographics #}
+      {% if p.demographics %}
+      <div class="meta-row">
+        <span>Age: <strong>{{ p.demographics.age }}</strong></span>
+        <span>Gender: <strong>{{ p.demographics.gender }}</strong></span>
+        <span>Handedness: <strong>{{ p.demographics.handedness }}</strong></span>
+      </div>
+      {% endif %}
+
+      {# per-participant charts #}
+      {% if p.normal and p.dual_task %}
+      <div class="chart-grid" style="margin-bottom:1.25rem;">
+        <div class="chart-box">
+          <h3>Accuracy — Normal vs Dual-Task</h3>
+          <canvas id="pChartAcc{{ p.participant_number }}" height="200"></canvas>
+        </div>
+        <div class="chart-box">
+          <h3>Per-Finger Hit Rate</h3>
+          <canvas id="pChartFinger{{ p.participant_number }}" height="200"></canvas>
+        </div>
+        <div class="chart-box">
+          <h3>Response Time per Trial (ms)</h3>
+          <button class="chart-expand" onclick="openRTModal('p{{ p.participant_number }}')" title="Expand full page">⤢</button>
+          <canvas id="pChartRT{{ p.participant_number }}" height="200"></canvas>
+        </div>
+        {% if p.normal.mean_clarity is not none and p.dual_task.mean_clarity is not none %}
+        <div class="chart-box">
+          <h3>Clarity &amp; Temp Estimate</h3>
+          <canvas id="pChartRatings{{ p.participant_number }}" height="200"></canvas>
+        </div>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      {# per-condition blocks #}
+      {% for cond_key, cond_label in [('normal', 'Normal'), ('dual_task', 'Dual-Task')] %}
+      {% set cond = p[cond_key] %}
+      {% if cond %}
+      <h3>{{ cond_label }} condition</h3>
+
+      {# summary cards #}
+      <div class="cards" style="margin-bottom:1rem;">
+        <div class="card">
+          <div class="label">Exact Match</div>
+          <div class="value">{{ cond.exact_match_pct }}%</div>
+          <div class="sub">{{ cond.exact_match_count }}/{{ cond.n_trials }}</div>
+        </div>
+        <div class="card">
+          <div class="label">Finger Hit Rate</div>
+          <div class="value">{{ cond.per_finger_hit_rate }}%</div>
+          <div class="sub">{{ cond.total_detected }}/{{ cond.total_heated }}</div>
+        </div>
+        <div class="card">
+          <div class="label">False Positives</div>
+          <div class="value">{{ cond.false_positives }}</div>
+        </div>
+        <div class="card">
+          <div class="label">False Negatives</div>
+          <div class="value">{{ cond.false_negatives }}</div>
+        </div>
+        <div class="card">
+          <div class="label">Mean RT</div>
+          <div class="value" style="font-size:1.1rem;">{{ cond.mean_rt_ms }} ms</div>
+          <div class="sub">SD {{ cond.sd_rt_ms }}</div>
+        </div>
+        <div class="card">
+          <div class="label">Clarity (mean)</div>
+          <div class="value" style="font-size:1.1rem;">{{ cond.mean_clarity }}</div>
+          <div class="sub">SD {{ cond.sd_clarity }}</div>
+        </div>
+        <div class="card">
+          <div class="label">Temp Est (mean)</div>
+          <div class="value" style="font-size:1.1rem;">{{ cond.mean_temp_estimate }}</div>
+          <div class="sub">SD {{ cond.sd_temp_estimate }}</div>
+        </div>
+      </div>
+
+      {# trial-by-trial table #}
+      <div class="tbl-wrap" style="margin-bottom:1rem;">
+        <table>
+          <thead>
+            <tr>
+              <th>Trial</th>
+              <th>Fingers Heated</th>
+              <th>Fingers Selected</th>
+              <th>Match {{ tip('✓ = participant identified exactly the right set of fingers; ✗ = at least one finger was wrong.') }}</th>
+              <th>TP {{ tip('True Positives: heated fingers correctly reported.') }}</th>
+              <th>FP {{ tip('False Positives: fingers reported that were NOT heated.') }}</th>
+              <th>FN {{ tip('False Negatives: heated fingers NOT reported (missed).') }}</th>
+              <th>RT (ms) {{ tip('Response time in milliseconds from device touch to response.') }}</th>
+              <th>Clarity {{ tip('Self-rated clarity of the thermal sensation (1–5).') }}</th>
+              <th>Temp Est {{ tip('Subjective temperature intensity estimate (1–5).') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for t in cond.per_trial %}
+            <tr>
+              <td>{{ t.trial_index }}</td>
+              <td>{{ t.heated | join(', ') }}</td>
+              <td>{{ t.selected | join(', ') }}</td>
+              <td>
+                {% if t.exact_match %}
+                  <span class="badge badge-ok">✓</span>
+                {% else %}
+                  <span class="badge badge-err">✗</span>
+                {% endif %}
+              </td>
+              <td>{{ t.tp }}</td>
+              <td>{{ t.fp }}</td>
+              <td>{{ t.fn }}</td>
+              <td>{{ t.rt_ms if t.rt_ms is not none else '—' }}</td>
+              <td>{{ t.clarity if t.clarity is not none else '—' }}</td>
+              <td>{{ t.temp_estimate if t.temp_estimate is not none else '—' }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {# per-finger detection table #}
+      <h3>Per-Finger Detection — {{ cond_label }}</h3>
+      <div class="tbl-wrap" style="margin-bottom:.75rem;">
+        <table>
+          <thead>
+            <tr>
+              <th>Finger</th>
+              <th>Times Heated</th>
+              <th>Times Detected</th>
+              <th>Hit Rate {{ tip('Heated fingers correctly reported ÷ total times that finger was heated.') }}</th>
+              <th>False Alarms {{ tip('Times the participant reported feeling this finger when it was NOT heated.') }}</th>
+              <th>FA Rate {{ tip('False Alarm Rate: false alarms ÷ trials where this finger was NOT heated.') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for fs in cond.finger_stats %}
+            <tr>
+              <td><strong>{{ fs.name }}</strong></td>
+              <td>{{ fs.presented }}</td>
+              <td>{{ fs.detected }}</td>
+              <td>{{ fs.hit_rate }}%</td>
+              <td>{{ fs.false_alarms }}</td>
+              <td>{{ fs.false_alarm_rate }}%</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {# confusion matrix for single-finger trials #}
+      <h3>Single-Finger Confusion Matrix — {{ cond_label }} {{ tip('Only trials with a single heated finger. Blue diagonal = correct. Red off-diagonal = finger confused with another.') }}</h3>
+      <p class="note" style="margin-bottom:.5rem;">Rows = finger heated &nbsp;|&nbsp; Columns = finger selected by participant</p>
+      <div class="cm">
+        <table>
+          <thead>
+            <tr>
+              <th></th>
+              {% for fn in data.finger_names %}<th>→ {{ fn }}</th>{% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for i in range(3) %}
+            <tr>
+              <td><strong>{{ data.finger_names[i] }} heated</strong></td>
+              {% for j in range(3) %}
+              {% set val = cond.confusion_matrix[i][j] %}
+              <td class="{{ 'cm-diag' if i == j and val > 0 else 'cm-off' if i != j and val > 0 else 'cm-zero' }}">
+                {{ val if val > 0 else '·' }}
+              </td>
+              {% endfor %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <p class="note">
+        Single-finger discrimination:
+        <strong>{{ cond.single_finger_correct }}/{{ cond.single_finger_total }}
+        ({{ cond.single_finger_pct }}%)</strong>
+      </p>
+
+      {% endif %}
+      {% endfor %}
+
+      {# 2-back performance #}
+      {% if p.two_back %}
+      {% set tb = p.two_back %}
+      <h3>2-Back Cognitive Task Performance {{ tip('The 2-back task requires remembering whether the current item matches the one two positions earlier. Used here to impose cognitive load during the dual-task condition.') }}</h3>
+      <div class="cards" style="margin-bottom:1rem;">
+        <div class="card">
+          <div class="label">Hit Rate {{ tip('Correct 2-back detections ÷ total actual matches in the sequence.') }}</div>
+          <div class="value">{{ tb.hit_rate if tb.hit_rate is not none else '—' }}%</div>
+          <div class="sub">{{ tb.total_correct }}/{{ tb.total_matches }} targets</div>
+        </div>
+        <div class="card">
+          <div class="label">Commission Errors {{ tip('Responses made when there was no actual 2-back match (false alarms in the cognitive task).') }}</div>
+          <div class="value">{{ tb.total_wrong }}</div>
+        </div>
+        <div class="card">
+          <div class="label">Missed Targets {{ tip('Actual 2-back matches that the participant did not respond to (omission errors).') }}</div>
+          <div class="value">{{ tb.total_missed }}</div>
+          <div class="sub">{{ tb.miss_rate if tb.miss_rate is not none else '—' }}%</div>
+        </div>
+        <div class="card">
+          <div class="label">Trials w/ data</div>
+          <div class="value">{{ tb.trials_with_data }}/{{ tb.total_trials }}</div>
+        </div>
+      </div>
+      {% if tb.per_trial %}
+      <div class="tbl-wrap" style="margin-bottom:1rem;">
+        <table>
+          <thead>
+            <tr><th>Trial</th><th>Matches</th><th>Correct</th><th>Wrong</th><th>Missed</th><th>Hit Rate</th></tr>
+          </thead>
+          <tbody>
+            {% for t in tb.per_trial %}
+            <tr>
+              <td>{{ t.trial_index }}</td>
+              <td>{{ t.total_matches }}</td>
+              <td>{{ t.correct }}</td>
+              <td>{{ t.wrong }}</td>
+              <td>{{ t.missed }}</td>
+              <td>{{ t.hit_rate if t.hit_rate is not none else '—' }}%</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+      {% if p.tutorial %}
+      {% set tut = p.tutorial %}
+      {% set tut_hr = (tut.correct / tut.total_matches * 100) | round(1) if tut.total_matches else none %}
+      <p class="note">
+        2-back tutorial (pre-experiment): correct={{ tut.correct }}, wrong={{ tut.wrong }},
+        missed={{ tut.missed }}, total={{ tut.total_matches }}
+        — hit rate <strong>{{ tut_hr if tut_hr is not none else '—' }}%</strong>
+      </p>
+      {% endif %}
+      {% endif %}
+
+      {# post-session questionnaire #}
+      {% if p.post_session %}
+      {% set ps = p.post_session %}
+      <h3>Post-Session Questionnaire</h3>
+      <div class="cards">
+        <div class="card">
+          <div class="label">Overall Comfort {{ tip('How comfortable the participant felt during the whole session (1 = very uncomfortable, 5 = very comfortable).') }}</div>
+          <div class="value">{{ ps.overall_comfort }}/5</div>
+        </div>
+        <div class="card">
+          <div class="label">Perceived Intensity {{ tip('General perceived strength of the thermal stimulation across the session (1 = very weak, 5 = very strong).') }}</div>
+          <div class="value">{{ ps.perceived_intensity }}/5</div>
+        </div>
+        <div class="card">
+          <div class="label">2-Back Difficulty {{ tip('How difficult the participant found the 2-back cognitive task (1 = very easy, 5 = very hard).') }}</div>
+          <div class="value">{{ ps.two_back_difficulty }}/5</div>
+        </div>
+        <div class="card">
+          <div class="label">Discomfort / Pain {{ tip('Did the participant report any physical discomfort or pain from the thermal device?') }}</div>
+          <div class="value" style="font-size:1rem;">{{ 'Yes' if ps.discomfort_or_pain else 'No' }}</div>
+        </div>
+      </div>
+      {% endif %}
+
+    </div>{# end tab-panel #}
+    {% endfor %}
+  </section>
+
+</div>{# end container #}
+
+<script>
+/* ── RT fullscreen modal ──────────────────────────────────────────────────── */
+const RT_PALETTE = [
+  ['rgba(30,90,180,.85)',  'rgba(30,90,180,1)'],
+  ['rgba(220,80,60,.85)', 'rgba(220,80,60,1)'],
+  ['rgba(16,185,129,.8)', 'rgba(16,185,129,1)'],
+  ['rgba(245,158,11,.8)', 'rgba(245,158,11,1)'],
+  ['rgba(139,92,246,.8)', 'rgba(139,92,246,1)'],
+  ['rgba(236,72,153,.8)', 'rgba(236,72,153,1)'],
+  ['rgba(20,184,166,.8)', 'rgba(20,184,166,1)'],
+  ['rgba(251,146,60,.8)', 'rgba(251,146,60,1)'],
+  ['rgba(99,102,241,.8)', 'rgba(99,102,241,1)'],
+  ['rgba(34,197,94,.8)',  'rgba(34,197,94,1)'],
+  ['rgba(248,113,113,.8)','rgba(248,113,113,1)'],
+  ['rgba(56,189,248,.8)', 'rgba(56,189,248,1)'],
+];
+
+let rtModalChart = null;
+
+function rtDatasets(viewKey) {
+  const maxLen = Math.max(...PPTS.map(p =>
+    Math.max(
+      (p.normal    ? p.normal.per_trial.length    : 0),
+      (p.dual_task ? p.dual_task.per_trial.length : 0)
+    )
+  ));
+  const labels = Array.from({length: maxLen}, (_, i) => `Trial ${i}`);
+
+  if (viewKey === 'agg') {
+    return {
+      labels,
+      datasets: [
+        { label: 'Normal (aggregate)',
+          data: AGG.normal.per_trial.map(t => t.rt_ms),
+          borderColor: RT_PALETTE[0][1], backgroundColor: 'rgba(30,90,180,.12)',
+          tension: .35, pointRadius: 6, pointHoverRadius: 9, fill: true, borderWidth: 2 },
+        { label: 'Dual-Task (aggregate)',
+          data: AGG.dual_task.per_trial.map(t => t.rt_ms),
+          borderColor: RT_PALETTE[1][1], backgroundColor: 'rgba(220,80,60,.12)',
+          tension: .35, pointRadius: 6, pointHoverRadius: 9, fill: true, borderWidth: 2 },
+      ]
+    };
+  }
+
+  if (viewKey === 'all_normal') {
+    return {
+      labels,
+      datasets: PPTS.filter(p => p.normal).map((p, i) => ({
+        label: `P${p.participant_number}`,
+        data: p.normal.per_trial.map(t => t.rt_ms),
+        borderColor: RT_PALETTE[i % RT_PALETTE.length][1],
+        backgroundColor: RT_PALETTE[i % RT_PALETTE.length][0].replace('.8)', '.06)').replace('.85)', '.06)'),
+        tension: .35, pointRadius: 4, pointHoverRadius: 8,
+        fill: false, borderWidth: 1.8,
+      }))
+    };
+  }
+
+  if (viewKey === 'all_dual') {
+    return {
+      labels,
+      datasets: PPTS.filter(p => p.dual_task).map((p, i) => ({
+        label: `P${p.participant_number}`,
+        data: p.dual_task.per_trial.map(t => t.rt_ms),
+        borderColor: RT_PALETTE[i % RT_PALETTE.length][1],
+        backgroundColor: 'transparent',
+        tension: .35, pointRadius: 4, pointHoverRadius: 8,
+        fill: false, borderWidth: 1.8,
+      }))
+    };
+  }
+
+  if (viewKey === 'all_both') {
+    const ds = [];
+    PPTS.forEach((p, i) => {
+      const col = RT_PALETTE[i % RT_PALETTE.length];
+      if (p.normal) ds.push({
+        label: `P${p.participant_number} Normal`,
+        data: p.normal.per_trial.map(t => t.rt_ms),
+        borderColor: col[1], borderDash: [],
+        backgroundColor: 'transparent',
+        tension: .35, pointRadius: 3, pointHoverRadius: 7,
+        fill: false, borderWidth: 1.5,
+      });
+      if (p.dual_task) ds.push({
+        label: `P${p.participant_number} Dual`,
+        data: p.dual_task.per_trial.map(t => t.rt_ms),
+        borderColor: col[1], borderDash: [5, 4],
+        backgroundColor: 'transparent',
+        tension: .35, pointRadius: 3, pointHoverRadius: 7,
+        fill: false, borderWidth: 1.5,
+      });
+    });
+    return { labels, datasets: ds };
+  }
+
+  // single participant  e.g. "p3"
+  const pnum = parseInt(viewKey.slice(1));
+  const p = PPTS.find(x => x.participant_number === pnum);
+  if (!p) return { labels, datasets: [] };
+  const ds = [];
+  if (p.normal) ds.push({
+    label: `P${pnum} — Normal`,
+    data: p.normal.per_trial.map(t => t.rt_ms),
+    borderColor: RT_PALETTE[0][1], backgroundColor: 'rgba(30,90,180,.1)',
+    tension: .35, pointRadius: 7, pointHoverRadius: 11, fill: true, borderWidth: 2.5,
+    pointBackgroundColor: p.normal.per_trial.map(t =>
+      t.exact_match ? 'rgba(16,185,129,1)' : 'rgba(220,80,60,1)'),
+  });
+  if (p.dual_task) ds.push({
+    label: `P${pnum} — Dual-Task`,
+    data: p.dual_task.per_trial.map(t => t.rt_ms),
+    borderColor: RT_PALETTE[1][1], backgroundColor: 'rgba(220,80,60,.1)',
+    tension: .35, pointRadius: 7, pointHoverRadius: 11, fill: true, borderWidth: 2.5,
+    pointBackgroundColor: p.dual_task.per_trial.map(t =>
+      t.exact_match ? 'rgba(16,185,129,1)' : 'rgba(220,80,60,1)'),
+  });
+  return { labels, datasets: ds };
+}
+
+function openRTModal(viewKey) {
+  document.getElementById('rtModalView').value = viewKey;
+  document.getElementById('rtModal').classList.add('open');
+  rtModalRedraw();
+}
+
+function closeRTModal() {
+  document.getElementById('rtModal').classList.remove('open');
+}
+
+function rtModalRedraw() {
+  const viewKey = document.getElementById('rtModalView').value;
+  const titles = {
+    agg: 'Response Time — Aggregate (Normal vs Dual-Task)',
+    all_normal: 'Response Time — All Participants, Normal condition',
+    all_dual: 'Response Time — All Participants, Dual-Task condition',
+    all_both: 'Response Time — All Participants, Both Conditions',
+  };
+  const pMatch = viewKey.match(/^p(\d+)$/);
+  document.getElementById('rtModalTitle').textContent =
+    pMatch ? `Response Time — Participant ${pMatch[1]}` : (titles[viewKey] || 'Response Time');
+
+  const { labels, datasets } = rtDatasets(viewKey);
+  const noteEl = document.querySelector('.rt-legend-note');
+  if (pMatch) {
+    noteEl.textContent = 'Point colour: green = exact match ✓  |  red = mismatch ✗  ·  Press Esc to close';
+  } else {
+    noteEl.textContent = 'Click a legend item to show/hide that series  ·  Press Esc to close';
+  }
+
+  if (rtModalChart) { rtModalChart.destroy(); rtModalChart = null; }
+  const ctx = document.getElementById('rtModalCanvas');
+  rtModalChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 250 },
+      plugins: {
+        legend: {
+          position: 'top',
+          labels: { font: { size: 12 }, color: '#cbd5e1', padding: 16, usePointStyle: true },
+        },
+        tooltip: {
+          backgroundColor: '#1e293b',
+          titleColor: '#94a3b8',
+          bodyColor: '#e2e8f0',
+          borderColor: '#334155',
+          borderWidth: 1,
+          callbacks: {
+            label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString()} ms`,
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { font: { size: 12 }, color: '#94a3b8' },
+          grid: { color: 'rgba(148,163,184,.12)' },
+        },
+        y: {
+          title: { display: true, text: 'Response Time (ms)', color: '#94a3b8', font: { size: 12 } },
+          ticks: { font: { size: 12 }, color: '#94a3b8',
+                   callback: v => v.toLocaleString() + ' ms' },
+          grid: { color: 'rgba(148,163,184,.12)' },
+        }
+      }
+    }
+  });
+}
+
+document.getElementById('rtModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('rtModal')) closeRTModal();
+});
+
+/* ── guide panel ──────────────────────────────────────────────────────────── */
+function toggleGuide() {
+  document.getElementById('guideOverlay').classList.toggle('open');
+}
+function closeGuide(e) {
+  if (e.target === document.getElementById('guideOverlay')) toggleGuide();
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.getElementById('guideOverlay').classList.remove('open');
+    closeRTModal();
+  }
+});
+
+/* ── tab switching ────────────────────────────────────────────────────────── */
+function showTab(id, btn) {
+  document.querySelectorAll('.tab-panel').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+
+/* ── shared palette ───────────────────────────────────────────────────────── */
+const C_NORMAL    = 'rgba(30,  90, 180, 0.75)';
+const C_DUAL      = 'rgba(220, 80,  60, 0.75)';
+const C_NORMAL_B  = 'rgba(30,  90, 180, 1)';
+const C_DUAL_B    = 'rgba(220, 80,  60, 1)';
+const C_INDEX     = 'rgba(59, 130, 246, 0.75)';
+const C_MIDDLE    = 'rgba(16, 185, 129, 0.75)';
+const C_RING      = 'rgba(245, 158, 11, 0.75)';
+
+const DEFAULTS = {
+  responsive: true,
+  plugins: { legend: { labels: { font: { size: 11 } } } },
+  scales: {
+    x: { ticks: { font: { size: 11 } } },
+    y: { ticks: { font: { size: 11 } } },
+  }
+};
+
+function barDefaults(yMax, yLabel) {
+  return {
+    responsive: true,
+    plugins: { legend: { labels: { font: { size: 11 } } } },
+    scales: {
+      x: { ticks: { font: { size: 11 } } },
+      y: { min: 0, max: yMax, title: { display: !!yLabel, text: yLabel, font: { size: 10 } },
+           ticks: { font: { size: 11 } } }
+    }
+  };
+}
+
+/* ── data from server ─────────────────────────────────────────────────────── */
+const AGG  = {{ data.aggregate | tojson }};
+const PPTS = {{ data.participants | tojson }};
+const FINGERS = {{ data.finger_names | tojson }};
+
+/* ══════════════════════════════════════════════════════════════════════════
+   AGGREGATE CHARTS
+   ══════════════════════════════════════════════════════════════════════════ */
+if (AGG.normal && AGG.dual_task) {
+
+  /* 1 — Accuracy comparison (grouped bar) */
+  new Chart(document.getElementById('chartAccuracy'), {
+    type: 'bar',
+    data: {
+      labels: ['Exact Match', 'Per-Finger Hit Rate'],
+      datasets: [
+        { label: 'Normal',    data: [AGG.normal.exact_match_pct,    AGG.normal.per_finger_hit_rate],    backgroundColor: C_NORMAL, borderColor: C_NORMAL_B, borderWidth: 1.5 },
+        { label: 'Dual-Task', data: [AGG.dual_task.exact_match_pct, AGG.dual_task.per_finger_hit_rate], backgroundColor: C_DUAL,   borderColor: C_DUAL_B,   borderWidth: 1.5 },
+      ]
+    },
+    options: barDefaults(100, '%')
+  });
+
+  /* 2 — Per-finger hit rate (grouped bar, 3 fingers × 2 conditions) */
+  new Chart(document.getElementById('chartFingerHit'), {
+    type: 'bar',
+    data: {
+      labels: FINGERS,
+      datasets: [
+        { label: 'Normal',    data: AGG.normal.finger_stats.map(f => f.hit_rate),    backgroundColor: C_NORMAL, borderColor: C_NORMAL_B, borderWidth: 1.5 },
+        { label: 'Dual-Task', data: AGG.dual_task.finger_stats.map(f => f.hit_rate), backgroundColor: C_DUAL,   borderColor: C_DUAL_B,   borderWidth: 1.5 },
+      ]
+    },
+    options: barDefaults(100, '%')
+  });
+
+  /* 3 — Response time per trial (line, both conditions overlaid) */
+  (() => {
+    const normalTrials = AGG.normal.per_trial;
+    const dualTrials   = AGG.dual_task.per_trial;
+    const maxLen = Math.max(normalTrials.length, dualTrials.length);
+    const labels = Array.from({length: maxLen}, (_, i) => `T${i}`);
+    new Chart(document.getElementById('chartRT'), {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          { label: 'Normal',    data: normalTrials.map(t => t.rt_ms), borderColor: C_NORMAL_B, backgroundColor: 'rgba(30,90,180,.1)',  tension: .3, pointRadius: 5, fill: true },
+          { label: 'Dual-Task', data: dualTrials.map(t => t.rt_ms),   borderColor: C_DUAL_B,   backgroundColor: 'rgba(220,80,60,.1)', tension: .3, pointRadius: 5, fill: true },
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { labels: { font: { size: 11 } } } },
+        scales: {
+          x: { ticks: { font: { size: 11 } } },
+          y: { title: { display: true, text: 'ms', font: { size: 10 } }, ticks: { font: { size: 11 } } }
+        }
+      }
+    });
+  })();
+
+  /* 4 — Clarity & temp estimate (grouped bar, per condition) */
+  new Chart(document.getElementById('chartRatings'), {
+    type: 'bar',
+    data: {
+      labels: ['Clarity (1–5)', 'Temp Estimate (1–5)'],
+      datasets: [
+        { label: 'Normal',    data: [AGG.normal.mean_clarity,    AGG.normal.mean_temp_estimate],    backgroundColor: C_NORMAL, borderColor: C_NORMAL_B, borderWidth: 1.5 },
+        { label: 'Dual-Task', data: [AGG.dual_task.mean_clarity, AGG.dual_task.mean_temp_estimate], backgroundColor: C_DUAL,   borderColor: C_DUAL_B,   borderWidth: 1.5 },
+      ]
+    },
+    options: barDefaults(5, 'Rating')
+  });
+
+  /* 5 — 2-back outcomes (doughnut) */
+  const tb = AGG.two_back;
+  if (tb && tb.total_matches && document.getElementById('chartTwoBack')) {
+    const missed = tb.total_missed || 0;
+    const wrong  = tb.total_wrong  || 0;
+    const correct = tb.total_correct || 0;
+    new Chart(document.getElementById('chartTwoBack'), {
+      type: 'doughnut',
+      data: {
+        labels: ['Correct', 'Commission errors', 'Missed'],
+        datasets: [{
+          data: [correct, wrong, missed],
+          backgroundColor: ['rgba(16,185,129,.8)', 'rgba(220,80,60,.8)', 'rgba(245,158,11,.8)'],
+          borderColor:     ['rgba(16,185,129,1)',   'rgba(220,80,60,1)',  'rgba(245,158,11,1)'],
+          borderWidth: 1.5
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { position: 'bottom', labels: { font: { size: 11 } } },
+          tooltip: {
+            callbacks: {
+              label: ctx => {
+                const total = ctx.dataset.data.reduce((a,b)=>a+b,0);
+                const pct = total ? (ctx.parsed / total * 100).toFixed(1) : 0;
+                return ` ${ctx.label}: ${ctx.parsed} (${pct}%)`;
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   PER-PARTICIPANT CHARTS  (one set per participant tab)
+   ══════════════════════════════════════════════════════════════════════════ */
+PPTS.forEach(p => {
+  if (!p.normal || !p.dual_task) return;
+  const id = p.participant_number;
+
+  /* 1 — accuracy */
+  const accEl = document.getElementById(`pChartAcc${id}`);
+  if (accEl) new Chart(accEl, {
+    type: 'bar',
+    data: {
+      labels: ['Exact Match', 'Per-Finger Hit Rate'],
+      datasets: [
+        { label: 'Normal',    data: [p.normal.exact_match_pct,    p.normal.per_finger_hit_rate],    backgroundColor: C_NORMAL, borderColor: C_NORMAL_B, borderWidth: 1.5 },
+        { label: 'Dual-Task', data: [p.dual_task.exact_match_pct, p.dual_task.per_finger_hit_rate], backgroundColor: C_DUAL,   borderColor: C_DUAL_B,   borderWidth: 1.5 },
+      ]
+    },
+    options: barDefaults(100, '%')
+  });
+
+  /* 2 — per-finger hit rate */
+  const fingerEl = document.getElementById(`pChartFinger${id}`);
+  if (fingerEl) new Chart(fingerEl, {
+    type: 'bar',
+    data: {
+      labels: FINGERS,
+      datasets: [
+        { label: 'Normal',    data: p.normal.finger_stats.map(f => f.hit_rate),    backgroundColor: C_NORMAL, borderColor: C_NORMAL_B, borderWidth: 1.5 },
+        { label: 'Dual-Task', data: p.dual_task.finger_stats.map(f => f.hit_rate), backgroundColor: C_DUAL,   borderColor: C_DUAL_B,   borderWidth: 1.5 },
+      ]
+    },
+    options: barDefaults(100, '%')
+  });
+
+  /* 3 — RT per trial */
+  const rtEl = document.getElementById(`pChartRT${id}`);
+  if (rtEl) {
+    const nT = p.normal.per_trial;
+    const dT = p.dual_task.per_trial;
+    const maxLen = Math.max(nT.length, dT.length);
+    new Chart(rtEl, {
+      type: 'line',
+      data: {
+        labels: Array.from({length: maxLen}, (_, i) => `T${i}`),
+        datasets: [
+          { label: 'Normal',    data: nT.map(t => t.rt_ms), borderColor: C_NORMAL_B, backgroundColor: 'rgba(30,90,180,.1)',  tension: .3, pointRadius: 5, fill: true },
+          { label: 'Dual-Task', data: dT.map(t => t.rt_ms), borderColor: C_DUAL_B,   backgroundColor: 'rgba(220,80,60,.1)', tension: .3, pointRadius: 5, fill: true },
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { labels: { font: { size: 11 } } } },
+        scales: {
+          x: { ticks: { font: { size: 11 } } },
+          y: { title: { display: true, text: 'ms', font: { size: 10 } }, ticks: { font: { size: 11 } } }
+        }
+      }
+    });
+  }
+
+  /* 4 — clarity & temp ratings */
+  const ratEl = document.getElementById(`pChartRatings${id}`);
+  if (ratEl) new Chart(ratEl, {
+    type: 'bar',
+    data: {
+      labels: ['Clarity (1–5)', 'Temp Estimate (1–5)'],
+      datasets: [
+        { label: 'Normal',    data: [p.normal.mean_clarity,    p.normal.mean_temp_estimate],    backgroundColor: C_NORMAL, borderColor: C_NORMAL_B, borderWidth: 1.5 },
+        { label: 'Dual-Task', data: [p.dual_task.mean_clarity, p.dual_task.mean_temp_estimate], backgroundColor: C_DUAL,   borderColor: C_DUAL_B,   borderWidth: 1.5 },
+      ]
+    },
+    options: barDefaults(5, 'Rating')
+  });
+});
+</script>
+
+</body>
+</html>
