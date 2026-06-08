@@ -1,5 +1,5 @@
 // Experiment flow stages
-export type ExperimentStage = "intro" | "countdown" | "in-progress" | "feedback";
+export type ExperimentStage = "intro" | "countdown" | "in-progress" | "feedback" | "debug-recap";
 
 // Experiment behavioural type
 export type ExperimentType = "pattern" | "pattern-cognitive";

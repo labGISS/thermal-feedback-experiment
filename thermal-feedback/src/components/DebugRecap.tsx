@@ -1,91 +1,142 @@
-import type { FeedbackData } from "../types";
+import type { Handedness, TrialProgress } from "../types";
+
+const getFaceConfigs = (handedness: Handedness) =>
+  [
+    { index: 1 as const, label: "Indice", points: "90,15 155,52 90,88 25,52", cx: 90, cy: 52 },
+    {
+      index: 0 as const,
+      label: handedness === "Destra" ? "Pollice" : "Medio",
+      points: "25,52 90,88 90,143 25,107",
+      cx: 57,
+      cy: 98,
+    },
+    {
+      index: 2 as const,
+      label: handedness === "Destra" ? "Medio" : "Pollice",
+      points: "90,88 155,52 155,107 90,143",
+      cx: 123,
+      cy: 98,
+    },
+  ] as const;
 
 interface Props {
-  experimentId: number;
-  trials: FeedbackData[];
+  heatingPath: number[];
+  selectedFaces: number[];
+  handedness: Handedness;
+  trialProgress?: TrialProgress;
   onContinue: () => void;
 }
 
-/** Returns true if the selected faces exactly match the heated faces. */
-function isExactMatch(heated: number[], selected: number[]): boolean {
-  if (heated.length !== selected.length) return false;
-  const a = [...heated].sort((x, y) => x - y);
-  const b = [...selected].sort((x, y) => x - y);
-  return a.every((v, i) => v === b[i]);
-}
+export const DebugRecap = ({ heatingPath, selectedFaces, handedness, trialProgress, onContinue }: Props) => {
+  const faceConfigs = getFaceConfigs(handedness);
 
-export const DebugRecap = ({ experimentId, trials, onContinue }: Props) => {
-  const correct = trials.filter(
-    (t) => isExactMatch(t.heatingPath ?? [], t.selectedFaces ?? []),
-  ).length;
+  const getFaceColors = (faceIndex: number) => {
+    const heated = heatingPath.includes(faceIndex);
+    const selected = selectedFaces.includes(faceIndex);
+    if (heated && selected) return { fill: "#4ade80", stroke: "#16a34a", textFill: "#fff" };
+    if (heated && !selected) return { fill: "#f87171", stroke: "#dc2626", textFill: "#fff" };
+    if (!heated && selected) return { fill: "#fb923c", stroke: "#ea580c", textFill: "#fff" };
+    return { fill: "#d0d0d0", stroke: "#888888", textFill: "#333" };
+  };
+
+  const isCorrect =
+    heatingPath.length === selectedFaces.length &&
+    heatingPath.every((f) => selectedFaces.includes(f));
 
   return (
     <div className="flex-1 flex items-center justify-center px-5 py-10">
-      <div className="max-w-2xl w-full mx-auto">
-        <div className="inline-block mb-2 px-3 py-1 bg-yellow-100 border border-yellow-300 rounded-full text-xs font-semibold text-yellow-700 uppercase tracking-widest">
-          Debug
-        </div>
-        <h1 className="text-3xl font-semibold mb-1 text-primary">
-          Recap — Esperimento {experimentId}
-        </h1>
-        <p className="text-sm text-gray-400 mb-6">
-          {correct}/{trials.length} corrispondenze esatte
+      <div className="max-w-xl w-full text-center mx-auto">
+        <h1 className="text-3xl font-semibold mb-2 text-primary">Riepilogo</h1>
+        {trialProgress && (
+          <p className="text-sm text-gray-400 mb-6 uppercase tracking-widest">
+            Prova {trialProgress.current} di {trialProgress.total}
+          </p>
+        )}
+
+        <p className={`text-xl font-semibold mb-6 ${isCorrect ? "text-green-600" : "text-red-500"}`}>
+          {isCorrect ? "Corretto!" : "Non corretto"}
         </p>
 
-        <div className="flex flex-col gap-3">
-          {trials.map((trial, i) => {
-            const heated = [...(trial.heatingPath ?? [])].sort((a, b) => a - b);
-            const selected = [...(trial.selectedFaces ?? [])].sort((a, b) => a - b);
-            const exact = isExactMatch(heated, selected);
+        <div className="flex justify-center gap-10 mb-6">
+          {/* Correct answer */}
+          <div className="flex flex-col items-center gap-2">
+            <p className="text-sm font-medium text-gray-600">Riscaldato</p>
+            <svg viewBox="0 0 180 158" className="w-40">
+              {faceConfigs.map((face) => {
+                const heated = heatingPath.includes(face.index);
+                return (
+                  <g key={face.index}>
+                    <polygon
+                      points={face.points}
+                      fill={heated ? "#e8956d" : "#d0d0d0"}
+                      stroke={heated ? "#c05a32" : "#888"}
+                      strokeWidth="1.5"
+                    />
+                    <text
+                      x={face.cx}
+                      y={face.cy}
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      fontSize="13"
+                      fontWeight="500"
+                      fill={heated ? "#fff" : "#333"}
+                      style={{ userSelect: "none" }}
+                    >
+                      {face.label}
+                    </text>
+                  </g>
+                );
+              })}
+            </svg>
+          </div>
 
-            return (
-              <div
-                key={i}
-                className={`flex items-center gap-4 px-4 py-3 rounded-xl border-2 ${
-                  exact ? "border-ok bg-green-50" : "border-danger bg-red-50"
-                }`}
-              >
-                {/* Trial number */}
-                <span className="text-sm font-semibold text-gray-500 w-16 shrink-0">
-                  Prova {(trial.trialIndex ?? i) + 1}
-                </span>
+          {/* User answer with color coding */}
+          <div className="flex flex-col items-center gap-2">
+            <p className="text-sm font-medium text-gray-600">Risposta</p>
+            <svg viewBox="0 0 180 158" className="w-40">
+              {faceConfigs.map((face) => {
+                const { fill, stroke, textFill } = getFaceColors(face.index);
+                return (
+                  <g key={face.index}>
+                    <polygon points={face.points} fill={fill} stroke={stroke} strokeWidth="1.5" />
+                    <text
+                      x={face.cx}
+                      y={face.cy}
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      fontSize="13"
+                      fontWeight="500"
+                      fill={textFill}
+                      style={{ userSelect: "none" }}
+                    >
+                      {face.label}
+                    </text>
+                  </g>
+                );
+              })}
+            </svg>
+          </div>
+        </div>
 
-                {/* Heated faces */}
-                <div className="flex flex-col min-w-0 flex-1">
-                  <span className="text-xs text-gray-400">Riscaldate</span>
-                  <span className="font-mono text-sm">
-                    {heated.length > 0 ? heated.map((f) => `F${f}`).join(", ") : "—"}
-                  </span>
-                </div>
-
-                {/* Selected faces */}
-                <div className="flex flex-col min-w-0 flex-1">
-                  <span className="text-xs text-gray-400">Selezionate</span>
-                  <span className="font-mono text-sm">
-                    {selected.length > 0 ? selected.map((f) => `F${f}`).join(", ") : "—"}
-                  </span>
-                </div>
-
-                {/* Temperature estimate */}
-                <div className="flex flex-col items-center shrink-0">
-                  <span className="text-xs text-gray-400">Intensità</span>
-                  <span className="font-semibold text-sm">
-                    {trial.temperatureEstimate ?? "—"}
-                  </span>
-                </div>
-
-                {/* Result icon */}
-                <span className={`text-xl shrink-0 ${exact ? "text-ok" : "text-danger"}`}>
-                  {exact ? "✓" : "✗"}
-                </span>
-              </div>
-            );
-          })}
+        {/* Legend */}
+        <div className="flex justify-center gap-4 mb-8 text-xs text-gray-600">
+          <span className="flex items-center gap-1">
+            <span className="inline-block w-3 h-3 rounded-sm bg-green-400" />
+            Corretto
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="inline-block w-3 h-3 rounded-sm bg-red-400" />
+            Mancato
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="inline-block w-3 h-3 rounded-sm bg-orange-400" />
+            Falso positivo
+          </span>
         </div>
 
         <button
-          className="mt-8 bg-primary text-white border-0 px-12 py-4 text-base font-medium rounded-lg cursor-pointer hover:bg-[#34495e] transition-colors"
           onClick={onContinue}
+          className="px-8 py-3 bg-primary text-white rounded-xl text-lg font-medium cursor-pointer hover:opacity-90 transition-opacity"
         >
           Continua
         </button>

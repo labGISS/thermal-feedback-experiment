@@ -30,6 +30,7 @@ import { FeedbackForm } from "./components/FeedbackForm";
 import { PostSessionQuestionnaire } from "./components/PostSessionQuestionnaire";
 import { CompletionScreen } from "./components/CompletionScreen";
 import { TwoBackTutorial } from "./components/TwoBackTutorial";
+import { DebugRecap } from "./components/DebugRecap";
 
 type AppPhase = "demographics" | "experiments" | "two-back-tutorial" | "post-session" | "done";
 
@@ -40,6 +41,7 @@ function App() {
   const [sessionTrials, setSessionTrials] = useState<SessionTrial[]>([]);
   const [currentTrialIdx, setCurrentTrialIdx] = useState(0);
   const [stage, setStage] = useState<ExperimentStage>("intro");
+  const [recapData, setRecapData] = useState<{ heatingPath: number[]; selectedFaces: number[] } | null>(null);
 
   // Holds the last /values/ message received from the device
   const pendingDeviceValues = useRef<ValuesMessage | undefined>(undefined);
@@ -106,7 +108,7 @@ function App() {
     twoBackStatsRef.current = undefined;
   };
 
-  // Feedback submitted → advance to next trial (or tutorial / post-session)
+  // Feedback submitted → show debug recap
   const handleSubmitFeedback = (feedback: FeedbackData) => {
     const trial = sessionTrials[currentTrialIdx];
     saveFeedback({
@@ -120,6 +122,13 @@ function App() {
     pendingDeviceValues.current = undefined;
     twoBackStatsRef.current = undefined;
 
+    setRecapData({ heatingPath: trial.heatingPath, selectedFaces: feedback.selectedFaces ?? [] });
+    setStage("debug-recap");
+  };
+
+  // Debug recap dismissed → advance to next trial (or tutorial / post-session)
+  const handleDebugRecapContinue = () => {
+    const trial = sessionTrials[currentTrialIdx];
     const nextIdx = currentTrialIdx + 1;
     if (nextIdx >= sessionTrials.length) {
       setAppPhase("post-session");
@@ -209,6 +218,17 @@ function App() {
               trialProgress={trialProgress}
             />
           )}
+
+          {stage === "debug-recap" && recapData && (
+            <DebugRecap
+              heatingPath={recapData.heatingPath}
+              selectedFaces={recapData.selectedFaces}
+              handedness={handedness}
+              trialProgress={trialProgress}
+              onContinue={handleDebugRecapContinue}
+            />
+          )}
+
         </>
       )}
 
