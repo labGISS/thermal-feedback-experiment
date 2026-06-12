@@ -10,7 +10,7 @@ import type {
   TrialProgress,
   TwoBackStats,
 } from "./types";
-import { COUNTDOWN_SECONDS, experiments, FACE_OFF, FACE_ON, NUM_FACES, TEMP_SET_POINT} from "./experimentConfig";
+import { COUNTDOWN_SECONDS, experiments, FACE_OFF, FACE_ON, NUM_FACES, SHOW_DEBUG_RECAP, TEMP_SET_POINT} from "./experimentConfig";
 import { useMqtt } from "./hooks/useMqtt";
 import {
   saveFeedback,
@@ -127,7 +127,11 @@ function App() {
     twoBackStatsRef.current = { correct: 0, wrong: 0, missed: 0, totalMatches: 0 };
 
     setRecapData({ heatingPath: trial.heatingPath, selectedFaces: feedback.selectedFaces ?? [] });
-    setStage("debug-recap");
+    if (SHOW_DEBUG_RECAP) {
+      setStage("debug-recap");
+    } else {
+      handleDebugRecapContinueFrom(trial, currentTrialIdx);
+    }
   };
 
   // Repeat the current trial after a malfunction — clear device values and re-run
@@ -142,9 +146,8 @@ function App() {
   };
 
   // Debug recap dismissed → advance to next trial (or tutorial / post-session)
-  const handleDebugRecapContinue = () => {
-    const trial = sessionTrials[currentTrialIdx];
-    const nextIdx = currentTrialIdx + 1;
+  const handleDebugRecapContinueFrom = (trial: SessionTrial, trialIdx: number) => {
+    const nextIdx = trialIdx + 1;
     if (nextIdx >= sessionTrials.length) {
       setAppPhase("post-session");
       return;
@@ -167,6 +170,10 @@ function App() {
     } else {
       setStage("intro");
     }
+  };
+
+  const handleDebugRecapContinue = () => {
+    handleDebugRecapContinueFrom(sessionTrials[currentTrialIdx], currentTrialIdx);
   };
 
   const handleTutorialComplete = (stats: TwoBackStats) => {

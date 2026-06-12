@@ -5,12 +5,14 @@ export const NUM_FACES = 3;
 
 export const COUNTDOWN_SECONDS = 0; // seconds for countdown before each trial
 
-export const TEMP_SET_POINT = 39;
+export const TEMP_SET_POINT = 41;
 
 export const TEMP_TOLERANCE = 4; // minimum difference between "on" and "off" faces to consider the trial valid
 
 export const FACE_ON = 1;
 export const FACE_OFF = 0;
+
+export const SHOW_DEBUG_RECAP = false;
 
 export const experiments: ExperimentConfig[] = [
   {
