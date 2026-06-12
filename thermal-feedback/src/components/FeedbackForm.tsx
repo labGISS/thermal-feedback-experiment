@@ -1,18 +1,30 @@
 import { useState } from "react";
-import type { ExperimentConfig, FeedbackData, Handedness, TrialProgress } from "../types";
+import type { ExperimentConfig, FeedbackData, Handedness, TrialProgress, ValuesMessage } from "../types";
 import { CubeFaceSelector } from "./CubeFaceSelector";
+import { TEMP_SET_POINT, TEMP_TOLERANCE } from "../experimentConfig";
 
 interface Props {
   experiment: ExperimentConfig;
   onSubmit: (feedback: FeedbackData) => void;
   handedness: Handedness;
   trialProgress?: TrialProgress;
+  heatingPath?: number[];
+  deviceValues?: ValuesMessage;
+  onRepeat?: () => void;
 }
 
-export const FeedbackForm = ({ experiment, onSubmit, handedness, trialProgress }: Props) => {
+export const FeedbackForm = ({ experiment, onSubmit, handedness, trialProgress, heatingPath, deviceValues, onRepeat }: Props) => {
   const [selectedFaces, setSelectedFaces] = useState<number[]>([]);
   const [temperatureEstimate, setTemperatureEstimate] = useState<string | undefined>(undefined);
   const [clarityEstimate, setClarityEstimate] = useState<number | undefined>(undefined);
+
+  const malfunction =
+    !!deviceValues?.temps_max_c &&
+    !!heatingPath &&
+    heatingPath.some((face) => {
+      const t = deviceValues.temps_max_c![face];
+      return typeof t === "number" && t <= TEMP_SET_POINT - TEMP_TOLERANCE;
+    });
 
   const isValid =
     selectedFaces.length > 0 &&
@@ -43,10 +55,27 @@ export const FeedbackForm = ({ experiment, onSubmit, handedness, trialProgress }
     <div className="flex-1 flex items-center justify-center px-5 py-10">
       <div className="max-w-xl w-full text-center mx-auto">
         <h1 className="text-3xl font-semibold mb-2 text-primary">Riscontro</h1>
+
         {trialProgress && (
           <p className="text-sm text-gray-400 mb-6 uppercase tracking-widest">
             Prova {trialProgress.current} di {trialProgress.total}
           </p>
+        )}
+
+        {malfunction && (
+          <div className="mb-4 p-4 rounded-lg border border-yellow-400 bg-yellow-50 text-left">
+            <p className="text-yellow-800 font-medium text-sm">
+              E&apos; possibile che si sia verificato un malfunzionamento del dispositivo. Se non hai sentito un cambiamento di temperatura ti preghiamo di avvisare il Tutor.
+            </p>
+            <div className="mt-3 flex justify-center">
+              <button
+                className="bg-yellow-400 hover:bg-yellow-500 text-white font-semibold px-6 py-2 rounded-lg cursor-pointer transition-colors"
+                onClick={onRepeat}
+              >
+                Ripeti test
+              </button>
+            </div>
+          </div>
         )}
 
         <div className="flex flex-col gap-4 mt-8">
@@ -127,14 +156,18 @@ export const FeedbackForm = ({ experiment, onSubmit, handedness, trialProgress }
             Invia riscontro
           </button>
 
-          <div className="flex flex-col gap-4 mt-4">
-            <h6 className="text-lg font-medium text-gray-900 text-center">Se non hai avvertito alcuno stimolo termico, puoi saltare questa sezione cliccando sul pulsante "Salta".</h6>
-            <button
-              className="bg-[#d74248] text-white border-0 px-12 py-4 text-base font-medium rounded-lg cursor-pointer hover:bg-[#FF6666] transition-colors"
+          <div className="mt-12 p-4 rounded-lg border border-red-400 bg-red-50 text-left">
+            <p className="text-red-800 font-medium text-sm">
+              Se non hai avvertito alcuno stimolo termico, puoi saltare questa sezione cliccando sul pulsante "Salta test".
+            </p>
+            <div className="mt-3 flex justify-center">
+              <button
+                className="bg-red-400 hover:bg-red-500 text-white font-semibold px-6 py-2 rounded-lg cursor-pointer transition-colors"
               onClick={handleSubmitNoFeedback}
-            >
-            Salta
-            </button>
+              >
+                Salta test
+              </button>
+            </div>
           </div>
 
         </div>

@@ -48,7 +48,7 @@ function App() {
   useEffect(() => { clearAllData(); }, []);
 
   // Holds the last /values/ message received from the device
-  const pendingDeviceValues = useRef<ValuesMessage | undefined>(undefined);
+  const [pendingDeviceValues, setPendingDeviceValues] = useState<ValuesMessage | undefined>(undefined);
   // Latest 2-back stats from the running TwoBackTask (Exp 2 trials)
   const twoBackStatsRef = useRef<TwoBackStats>({ correct: 0, wrong: 0, missed: 0, totalMatches: 0 });
   // Timeout handle for the deferred thermal command in Exp 2
@@ -57,7 +57,7 @@ function App() {
   // Device publishes to /values/ when a heating cycle ends → go to feedback
   const handleValuesReceived = (values: ValuesMessage) => {
     console.log("Device values received:", values);
-    pendingDeviceValues.current = values;
+    setPendingDeviceValues(values);
     setStage("feedback");
   };
 
@@ -120,14 +120,25 @@ function App() {
       participantNumber,
       heatingPath: trial.heatingPath,
       trialIndex: trial.trialIndex,
-      deviceValues: pendingDeviceValues.current,
+      deviceValues: pendingDeviceValues,
       twoBackStats: trial.experimentType === 2 ? twoBackStatsRef.current : undefined,
     });
-    pendingDeviceValues.current = undefined;
+    setPendingDeviceValues(undefined);
     twoBackStatsRef.current = { correct: 0, wrong: 0, missed: 0, totalMatches: 0 };
 
     setRecapData({ heatingPath: trial.heatingPath, selectedFaces: feedback.selectedFaces ?? [] });
     setStage("debug-recap");
+  };
+
+  // Repeat the current trial after a malfunction — clear device values and re-run
+  const handleRepeatTrial = () => {
+    if (thermalTimeoutRef.current) {
+      clearTimeout(thermalTimeoutRef.current);
+      thermalTimeoutRef.current = null;
+    }
+    setPendingDeviceValues(undefined);
+    twoBackStatsRef.current = { correct: 0, wrong: 0, missed: 0, totalMatches: 0 };
+    startInProgress(currentTrialIdx);
   };
 
   // Debug recap dismissed → advance to next trial (or tutorial / post-session)
@@ -221,6 +232,9 @@ function App() {
               onSubmit={handleSubmitFeedback}
               handedness={handedness}
               trialProgress={trialProgress}
+              heatingPath={currentTrial.heatingPath}
+              deviceValues={pendingDeviceValues}
+              onRepeat={handleRepeatTrial}
             />
           )}
 
