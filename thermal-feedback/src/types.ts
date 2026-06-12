@@ -13,8 +13,8 @@ export interface ExperimentState {
 
 // Message published to /commands/ — received by the device
 export interface CommandMessage {
-  pulse_ms: number[];
-  pause_ms: number;
+  temp_set_point: number;
+  channels: number[];
 }
 
 // Message published by the device to /values/ when a heating cycle ends

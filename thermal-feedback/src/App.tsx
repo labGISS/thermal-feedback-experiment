@@ -10,7 +10,7 @@ import type {
   TrialProgress,
   TwoBackStats,
 } from "./types";
-import { COUNTDOWN_SECONDS, experiments, NUM_FACES, PAUSE_MS, PULSE_DURATION_MS } from "./experimentConfig";
+import { COUNTDOWN_SECONDS, experiments, FACE_OFF, FACE_ON, NUM_FACES, TEMP_SET_POINT} from "./experimentConfig";
 import { useMqtt } from "./hooks/useMqtt";
 import {
   saveFeedback,
@@ -94,10 +94,10 @@ function App() {
     }
     const trial = sessionTrials[trialIdx];
     const expConfig = experiments[trial.experimentType - 1];
-    const pulse_ms = Array.from({ length: NUM_FACES }, (_, i) =>
-      trial.heatingPath.includes(i) ? PULSE_DURATION_MS : 0,
+    const channels = Array.from({ length: NUM_FACES }, (_, i) =>
+      trial.heatingPath.includes(i) ? FACE_ON : FACE_OFF,
     );
-    const sendCommand = () => publishCommand({ pulse_ms, pause_ms: PAUSE_MS });
+    const sendCommand = () => publishCommand({ temp_set_point: TEMP_SET_POINT, channels });
     if (expConfig.thermalDelay_ms && expConfig.thermalDelay_ms > 0) {
       thermalTimeoutRef.current = setTimeout(sendCommand, expConfig.thermalDelay_ms);
     } else {
