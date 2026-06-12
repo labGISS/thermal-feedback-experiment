@@ -36,8 +36,10 @@ _TRIAL_COLS = [
     "temperature_estimate",       # exp 1 only
     "device_touch_time_ms",
     "device_touched",
-    "device_pulse_ms",
-    "device_pause_ms",
+    "device_temp_setpoint_c",
+    "device_channels",
+    "device_temps_max_c",
+    "device_temps_avg_c",
     "two_back_correct",           # exp 3 only
     "two_back_wrong",
     "two_back_missed",

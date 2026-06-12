@@ -35,7 +35,7 @@ class Feedback(Base):
     participant_number = Column(
         Integer, ForeignKey("sessions.participant_number"), nullable=False, index=True
     )
-    experiment_id = Column(Integer, nullable=False)    # 1 | 2 | 3
+    experiment_id = Column(Integer, nullable=False)    # 1 | 2
     trial_index = Column(Integer, nullable=True)        # 0-based within experiment type
     heating_path = Column(Text, nullable=True)          # JSON array, e.g. "[0,1]"
     selected_faces = Column(Text, nullable=True)        # JSON array
@@ -44,8 +44,10 @@ class Feedback(Base):
     # Raw values echoed back by the device
     device_touch_time_ms = Column(Float, nullable=True)
     device_touched = Column(Text, nullable=True)        # JSON array
-    device_pulse_ms = Column(Text, nullable=True)       # JSON array
-    device_pause_ms = Column(Float, nullable=True)
+    device_temp_setpoint_c = Column(Float, nullable=True)
+    device_channels = Column(Text, nullable=True)       # JSON array
+    device_temps_max_c = Column(Text, nullable=True)    # JSON array
+    device_temps_avg_c = Column(Text, nullable=True)    # JSON array
     # 2-back task performance (Exp 3 only)
     two_back_correct = Column(Integer, nullable=True)
     two_back_wrong = Column(Integer, nullable=True)
@@ -80,6 +82,6 @@ class PostSession(Base):
     overall_comfort = Column(Integer, nullable=False)       # 1–5
     perceived_intensity = Column(Integer, nullable=False)      # 1–5
     two_back_difficulty = Column(Integer, nullable=False)   # 1–5
-    feedback_clarity = Column(Integer, nullable=True)        # 1–5, optional
+    # feedback_clarity = Column(Integer, nullable=True)        # 1–5, optional
     discomfort_or_pain = Column(Boolean, nullable=False)
     timestamp = Column(Integer, nullable=False)             # Unix ms

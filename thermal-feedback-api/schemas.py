@@ -17,8 +17,10 @@ class DeviceValues(BaseModel):
     """
     touch_time_ms: Optional[float] = None
     touched: Optional[List[int]] = None
-    pulse_ms: Optional[List[int]] = None
-    pause_ms: Optional[float] = None
+    temp_setpoint_c: Optional[float] = None
+    channels: Optional[List[int]] = None
+    temps_max_c: Optional[List[Optional[float]]] = None
+    temps_avg_c: Optional[List[Optional[float]]] = None
 
 
 class TwoBackStatsIn(BaseModel):
@@ -54,7 +56,7 @@ class PostSessionIn(BaseModel):
     overallComfort: int
     perceivedIntensity: int
     twoBackDifficulty: int
-    feedbackClarity: Optional[int] = None
+    # feedbackClarity: Optional[int] = None
     discomfortOrPain: bool
     timestamp: int
     participantNumber: Optional[int] = None  # ignored; session-level value is used
@@ -141,7 +143,7 @@ class PostSessionOut(BaseModel):
     overallComfort: int
     perceivedIntensity: int
     twoBackDifficulty: int
-    feedbackClarity: Optional[int] = None
+    # feedbackClarity: Optional[int] = None
     discomfortOrPain: bool
     timestamp: int
 

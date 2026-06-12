@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type {
   ExperimentStage,
   SessionTrial,
@@ -20,6 +20,7 @@ import {
   incrementParticipantCount,
   fetchParticipantNumber,
   submitSessionData,
+  clearAllData,
 } from "./storage";
 import { getTrialSequence } from "./counterbalancing";
 import { DemographicsScreen } from "./components/DemographicsScreen";
@@ -43,10 +44,13 @@ function App() {
   const [stage, setStage] = useState<ExperimentStage>("intro");
   const [recapData, setRecapData] = useState<{ heatingPath: number[]; selectedFaces: number[] } | null>(null);
 
+  // Clear any leftover data from a previous session on mount
+  useEffect(() => { clearAllData(); }, []);
+
   // Holds the last /values/ message received from the device
   const pendingDeviceValues = useRef<ValuesMessage | undefined>(undefined);
   // Latest 2-back stats from the running TwoBackTask (Exp 2 trials)
-  const twoBackStatsRef = useRef<TwoBackStats | undefined>(undefined);
+  const twoBackStatsRef = useRef<TwoBackStats>({ correct: 0, wrong: 0, missed: 0, totalMatches: 0 });
   // Timeout handle for the deferred thermal command in Exp 2
   const thermalTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -97,7 +101,7 @@ function App() {
     const channels = Array.from({ length: NUM_FACES }, (_, i) =>
       trial.heatingPath.includes(i) ? FACE_ON : FACE_OFF,
     );
-    const sendCommand = () => publishCommand({ temp_set_point: TEMP_SET_POINT, channels });
+    const sendCommand = () => publishCommand({ temp_setpoint_c: TEMP_SET_POINT, channels });
     if (expConfig.thermalDelay_ms && expConfig.thermalDelay_ms > 0) {
       thermalTimeoutRef.current = setTimeout(sendCommand, expConfig.thermalDelay_ms);
     } else {
@@ -105,7 +109,7 @@ function App() {
     }
     setStage("in-progress");
     // Reset 2-back stats at the start of each in-progress phase
-    twoBackStatsRef.current = undefined;
+    twoBackStatsRef.current = { correct: 0, wrong: 0, missed: 0, totalMatches: 0 };
   };
 
   // Feedback submitted → show debug recap
@@ -120,7 +124,7 @@ function App() {
       twoBackStats: trial.experimentType === 2 ? twoBackStatsRef.current : undefined,
     });
     pendingDeviceValues.current = undefined;
-    twoBackStatsRef.current = undefined;
+    twoBackStatsRef.current = { correct: 0, wrong: 0, missed: 0, totalMatches: 0 };
 
     setRecapData({ heatingPath: trial.heatingPath, selectedFaces: feedback.selectedFaces ?? [] });
     setStage("debug-recap");
@@ -163,6 +167,7 @@ function App() {
   const handlePostSessionSubmit = (data: PostSessionData) => {
     savePostSession({ ...data, participantNumber });
     submitSessionData(participantNumber);
+    clearAllData();
     setAppPhase("done");
   };
 

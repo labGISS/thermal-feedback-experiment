@@ -140,6 +140,8 @@ export const submitSessionData = (participantNumber: number): void => {
     })(),
   };
 
+  console.log("Submitting session data to API:", payload);
+
   fetch(`${API_BASE_URL}/session`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

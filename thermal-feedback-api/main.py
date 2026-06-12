@@ -5,7 +5,7 @@ from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session as DbSession
 
-from database import Base, engine, get_db, run_migrations
+from database import Base, engine, get_db
 from models import Demographics, Feedback, PostSession, Session, TwoBackTutorial
 from schemas import (
     DemographicsOut,
@@ -19,9 +19,7 @@ from schemas import (
     SessionPayload,
 )
 
-# Run additive migrations before creating any new tables
-run_migrations(engine)
-# Create tables that don't exist yet (e.g. two_back_tutorial)
+# Create tables on startup
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Thermal Feedback API", version="1.0.0")
@@ -92,8 +90,10 @@ def create_session(payload: SessionPayload, db: DbSession = Depends(get_db)):
             clarity_estimate=fb.clarityEstimate,
             device_touch_time_ms=dv.touch_time_ms if dv else None,
             device_touched=json.dumps(dv.touched) if dv else None,
-            device_pulse_ms=json.dumps(dv.pulse_ms) if dv else None,
-            device_pause_ms=dv.pause_ms if dv else None,
+            device_temp_setpoint_c=dv.temp_setpoint_c if dv else None,
+            device_channels=json.dumps(dv.channels) if dv and dv.channels is not None else None,
+            device_temps_max_c=json.dumps(dv.temps_max_c) if dv and dv.temps_max_c is not None else None,
+            device_temps_avg_c=json.dumps(dv.temps_avg_c) if dv and dv.temps_avg_c is not None else None,
             two_back_correct=tbs.correct if tbs else None,
             two_back_wrong=tbs.wrong if tbs else None,
             two_back_missed=tbs.missed if tbs else None,
@@ -119,7 +119,7 @@ def create_session(payload: SessionPayload, db: DbSession = Depends(get_db)):
             overall_comfort=ps.overallComfort,
             perceived_intensity=ps.perceivedIntensity,
             two_back_difficulty=ps.twoBackDifficulty,
-            feedback_clarity=ps.feedbackClarity,
+            # feedback_clarity=ps.feedbackClarity,
             discomfort_or_pain=ps.discomfortOrPain,
             timestamp=ps.timestamp,
         ))
@@ -213,7 +213,7 @@ def _build_session_out(session: Session, db: DbSession) -> SessionOut:
             overallComfort=post_session.overall_comfort,
             perceivedIntensity=post_session.perceived_intensity,
             twoBackDifficulty=post_session.two_back_difficulty,
-            feedbackClarity=post_session.feedback_clarity,
+            # feedbackClarity=post_session.feedback_clarity,
             discomfortOrPain=post_session.discomfort_or_pain,
             timestamp=post_session.timestamp,
         ) if post_session else None,

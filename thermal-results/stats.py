@@ -37,7 +37,6 @@ def _load_records(db_path: str) -> tuple[list[dict], list, list, list]:
         r["heating_path"] = json.loads(r["heating_path"]) if r["heating_path"] else []
         r["selected_faces"] = json.loads(r["selected_faces"]) if r["selected_faces"] else []
         r["device_touched"] = json.loads(r["device_touched"]) if r["device_touched"] else []
-        r["device_pulse_ms"] = json.loads(r["device_pulse_ms"]) if r["device_pulse_ms"] else []
         r["condition"] = "Normal" if r["experiment_id"] == 1 else "Dual-Task"
 
     return feedback_rows, demographics, post_sessions, tutorials

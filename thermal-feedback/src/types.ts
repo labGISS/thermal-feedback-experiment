@@ -13,7 +13,7 @@ export interface ExperimentState {
 
 // Message published to /commands/ — received by the device
 export interface CommandMessage {
-  temp_set_point: number;
+  temp_setpoint_c: number;
   channels: number[];
 }
 
@@ -21,8 +21,10 @@ export interface CommandMessage {
 export interface ValuesMessage {
   touch_time_ms: number;
   touched: number[];
-  pulse_ms: number[];
-  pause_ms: number;
+  temp_setpoint_c: number;
+  channels: number[];
+  temps_max_c: number[];
+  temps_avg_c: number[];
 }
 
 export interface TrialProgress {
