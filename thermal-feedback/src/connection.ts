@@ -7,4 +7,5 @@ export const MQTT_BROKER_URL = "ws://193.205.185.56:7080"; // WebSocket URL for 
 export const MQTT_TOPICS = {
   commands: "/commands/", // App publishes here → device receives
   values: "/values/", // Device publishes here → app receives
+  feedback: "cubetto2/feedback/", // App publishes user feedback after each trial
 };

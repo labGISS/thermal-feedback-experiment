@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { ExperimentConfig, FeedbackData, Handedness, TrialProgress, ValuesMessage } from "../types";
 import { CubeFaceSelector } from "./CubeFaceSelector";
-import { TEMP_SET_POINT, TEMP_TOLERANCE } from "../experimentConfig";
+import { TEMP_TOLERANCE } from "../experimentConfig";
 
 interface Props {
   experiment: ExperimentConfig;
@@ -11,9 +11,10 @@ interface Props {
   heatingPath?: number[];
   deviceValues?: ValuesMessage;
   onRepeat?: () => void;
+  tempSetPoint: number;
 }
 
-export const FeedbackForm = ({ experiment, onSubmit, handedness, trialProgress, heatingPath, deviceValues, onRepeat }: Props) => {
+export const FeedbackForm = ({ experiment, onSubmit, handedness, trialProgress, heatingPath, deviceValues, onRepeat, tempSetPoint }: Props) => {
   const [selectedFaces, setSelectedFaces] = useState<number[]>([]);
   const [temperatureEstimate, setTemperatureEstimate] = useState<string | undefined>(undefined);
   const [clarityEstimate, setClarityEstimate] = useState<number | undefined>(undefined);
@@ -23,7 +24,7 @@ export const FeedbackForm = ({ experiment, onSubmit, handedness, trialProgress, 
     !!heatingPath &&
     heatingPath.some((face) => {
       const t = deviceValues.temps_max_c![face];
-      return typeof t === "number" && t <= TEMP_SET_POINT - TEMP_TOLERANCE;
+      return typeof t === "number" && t <= tempSetPoint - TEMP_TOLERANCE;
     });
 
   const isValid =

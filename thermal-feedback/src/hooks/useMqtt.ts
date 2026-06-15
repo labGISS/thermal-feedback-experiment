@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import mqtt from "mqtt";
 import type { MqttClient } from "mqtt";
-import type { CommandMessage, ValuesMessage } from "../types";
+import type { CommandMessage, FeedbackData, ValuesMessage } from "../types";
 import { MQTT_BROKER_URL, MQTT_TOPICS } from "../connection";
 
 // MQTT Configuration - Update these with your actual broker details
@@ -91,8 +91,17 @@ export const useMqtt = (onValuesReceived?: (values: ValuesMessage) => void) => {
     }
   };
 
+  const publishFeedback = (feedback: FeedbackData) => {
+    if (clientRef.current && isConnected) {
+      const payload = JSON.stringify(feedback);
+      clientRef.current.publish(MQTT_TOPICS.feedback, payload);
+      console.log("Published feedback:", payload);
+    }
+  };
+
   return {
     isConnected,
     publishCommand,
+    publishFeedback,
   };
 };

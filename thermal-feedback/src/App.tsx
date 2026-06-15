@@ -32,6 +32,7 @@ import { PostSessionQuestionnaire } from "./components/PostSessionQuestionnaire"
 import { CompletionScreen } from "./components/CompletionScreen";
 import { TwoBackTutorial } from "./components/TwoBackTutorial";
 import { DebugRecap } from "./components/DebugRecap";
+import { SideMenu } from "./components/SideMenu";
 
 type AppPhase = "demographics" | "experiments" | "two-back-tutorial" | "post-session" | "done";
 
@@ -43,6 +44,7 @@ function App() {
   const [currentTrialIdx, setCurrentTrialIdx] = useState(0);
   const [stage, setStage] = useState<ExperimentStage>("intro");
   const [recapData, setRecapData] = useState<{ heatingPath: number[]; selectedFaces: number[] } | null>(null);
+  const [tempSetPoint, setTempSetPoint] = useState(TEMP_SET_POINT);
 
   // Clear any leftover data from a previous session on mount
   useEffect(() => { clearAllData(); }, []);
@@ -61,7 +63,7 @@ function App() {
     setStage("feedback");
   };
 
-  const { isConnected, publishCommand } = useMqtt(handleValuesReceived);
+  const { isConnected, publishCommand, publishFeedback } = useMqtt(handleValuesReceived);
 
   // Demographics submitted → build full trial sequence and start experiments
   const handleDemographicsSubmit = async (data: DemographicsData) => {
@@ -101,7 +103,7 @@ function App() {
     const channels = Array.from({ length: NUM_FACES }, (_, i) =>
       trial.heatingPath.includes(i) ? FACE_ON : FACE_OFF,
     );
-    const sendCommand = () => publishCommand({ temp_setpoint_c: TEMP_SET_POINT, channels });
+    const sendCommand = () => publishCommand({ temp_setpoint_c: tempSetPoint, channels });
     if (expConfig.thermalDelay_ms && expConfig.thermalDelay_ms > 0) {
       thermalTimeoutRef.current = setTimeout(sendCommand, expConfig.thermalDelay_ms);
     } else {
@@ -115,14 +117,16 @@ function App() {
   // Feedback submitted → show debug recap
   const handleSubmitFeedback = (feedback: FeedbackData) => {
     const trial = sessionTrials[currentTrialIdx];
-    saveFeedback({
+    const fullFeedback: FeedbackData = {
       ...feedback,
       participantNumber,
       heatingPath: trial.heatingPath,
       trialIndex: trial.trialIndex,
       deviceValues: pendingDeviceValues,
       twoBackStats: trial.experimentType === 2 ? twoBackStatsRef.current : undefined,
-    });
+    };
+    saveFeedback(fullFeedback);
+    publishFeedback(fullFeedback);
     setPendingDeviceValues(undefined);
     twoBackStatsRef.current = { correct: 0, wrong: 0, missed: 0, totalMatches: 0 };
 
@@ -199,6 +203,8 @@ function App() {
 
   return (
     <div className="min-h-screen flex flex-col">
+      <SideMenu tempSetPoint={tempSetPoint} onTempSetPointChange={setTempSetPoint} />
+
       {/* MQTT connection indicator — hidden during demographics and tutorial */}
       {appPhase !== "demographics" && appPhase !== "two-back-tutorial" && (
         <div className="fixed top-5 right-5 flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-full text-sm z-50">
@@ -242,6 +248,7 @@ function App() {
               heatingPath={currentTrial.heatingPath}
               deviceValues={pendingDeviceValues}
               onRepeat={handleRepeatTrial}
+              tempSetPoint={tempSetPoint}
             />
           )}
 
