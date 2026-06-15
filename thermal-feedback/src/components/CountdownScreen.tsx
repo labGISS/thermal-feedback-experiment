@@ -44,7 +44,7 @@ export const CountdownScreen = ({ onComplete, seconds, trialProgress, handedness
           className="w-68 h-68 object-contain mx-auto mb-4"
           style={handedness === "Sinistra" ? { transform: "scaleX(-1)" } : undefined}
         />
-        <p className="text-base text-gray-400">Posiziona e mantieni le dita sul cubo</p>
+        <p className="text-lg text-red-400">Attendi il conto alla rovescia prima di toccare il cubo</p>
       </div>
     </div>
   );
