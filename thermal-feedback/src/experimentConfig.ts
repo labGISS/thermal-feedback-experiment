@@ -3,7 +3,7 @@ import type { ExperimentConfig } from "./types";
 /** Number of heatable faces on the cube */
 export const NUM_FACES = 3;
 
-export const COUNTDOWN_SECONDS = 0; // seconds for countdown before each trial
+export const COUNTDOWN_SECONDS = 5; // seconds for countdown before each trial
 
 export const TEMP_SET_POINT = 41;
 
