@@ -86,7 +86,7 @@ def create_session(payload: SessionPayload, db: DbSession = Depends(get_db)):
             trial_index=fb.trialIndex,
             heating_path=json.dumps(fb.heatingPath) if fb.heatingPath is not None else None,
             selected_faces=json.dumps(fb.selectedFaces) if fb.selectedFaces is not None else None,
-            temperature_estimate=fb.temperatureEstimate,
+            temperature_estimate=json.dumps(fb.temperatureEstimate) if fb.temperatureEstimate is not None else None,
             clarity_estimate=fb.clarityEstimate,
             device_touch_time_ms=dv.touch_time_ms if dv else None,
             device_touched=json.dumps(dv.touched) if dv else None,
@@ -188,7 +188,7 @@ def _build_session_out(session: Session, db: DbSession) -> SessionOut:
                 trialIndex=fb.trial_index,
                 heatingPath=_json_to_list(fb.heating_path),
                 selectedFaces=_json_to_list(fb.selected_faces),
-                temperatureEstimate=fb.temperature_estimate,
+                temperatureEstimate=_json_to_list(fb.temperature_estimate),
                 clarityEstimate=fb.clarity_estimate,
                 twoBackStats=TwoBackStatsOut(
                     correct=fb.two_back_correct,

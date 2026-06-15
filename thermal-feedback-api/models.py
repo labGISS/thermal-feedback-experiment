@@ -39,7 +39,7 @@ class Feedback(Base):
     trial_index = Column(Integer, nullable=True)        # 0-based within experiment type
     heating_path = Column(Text, nullable=True)          # JSON array, e.g. "[0,1]"
     selected_faces = Column(Text, nullable=True)        # JSON array
-    temperature_estimate = Column(Text, nullable=True)  # "1"–"5", heat intensity
+    temperature_estimate = Column(Text, nullable=True)  # JSON array, e.g. "[0,1]"
     clarity_estimate = Column(Integer, nullable=True)    # 1–5 per-trial confidence
     # Raw values echoed back by the device
     device_touch_time_ms = Column(Float, nullable=True)

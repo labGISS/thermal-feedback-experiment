@@ -36,7 +36,7 @@ class FeedbackItem(BaseModel):
     trialIndex: Optional[int] = None
     heatingPath: Optional[List[int]] = None
     selectedFaces: Optional[List[int]] = None
-    temperatureEstimate: Optional[str] = None
+    temperatureEstimate: Optional[List[int]] = None
     clarityEstimate: Optional[int] = None       # 1–5 per-trial confidence
     deviceValues: Optional[DeviceValues] = None
     twoBackStats: Optional[TwoBackStatsIn] = None  # Exp 3 only
@@ -109,14 +109,14 @@ class FeedbackOut(BaseModel):
     trialIndex: Optional[int]
     heatingPath: Optional[List[int]]
     selectedFaces: Optional[List[int]]
-    temperatureEstimate: Optional[str]
+    temperatureEstimate: Optional[List[int]]
     clarityEstimate: Optional[int]
     twoBackStats: Optional[TwoBackStatsOut]
     timestamp: int
 
     model_config = {"from_attributes": True}
 
-    @field_validator("heatingPath", "selectedFaces", mode="before")
+    @field_validator("heatingPath", "selectedFaces", "temperatureEstimate", mode="before")
     @classmethod
     def parse_json_list(cls, v: Any) -> Optional[List[int]]:
         if isinstance(v, str):

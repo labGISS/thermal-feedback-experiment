@@ -1,5 +1,11 @@
 import { useState } from "react";
-import type { ExperimentConfig, FeedbackData, Handedness, TrialProgress, ValuesMessage } from "../types";
+import type {
+  ExperimentConfig,
+  FeedbackData,
+  Handedness,
+  TrialProgress,
+  ValuesMessage,
+} from "../types";
 import { CubeFaceSelector } from "./CubeFaceSelector";
 import { TEMP_TOLERANCE } from "../experimentConfig";
 
@@ -14,10 +20,20 @@ interface Props {
   tempSetPoint: number;
 }
 
-export const FeedbackForm = ({ experiment, onSubmit, handedness, trialProgress, heatingPath, deviceValues, onRepeat, tempSetPoint }: Props) => {
+export const FeedbackForm = ({
+  experiment,
+  onSubmit,
+  handedness,
+  trialProgress,
+  heatingPath,
+  deviceValues,
+  onRepeat,
+  tempSetPoint,
+}: Props) => {
   const [selectedFaces, setSelectedFaces] = useState<number[]>([]);
-  const [temperatureEstimate, setTemperatureEstimate] = useState<string | undefined>(undefined);
+  // const [temperatureEstimate, setTemperatureEstimate] = useState<string | undefined>(undefined);
   const [clarityEstimate, setClarityEstimate] = useState<number | undefined>(undefined);
+  const [tempFaces, setTempFaces] = useState<number[]>([0, 0, 0]);
 
   const malfunction =
     !!deviceValues?.temps_max_c &&
@@ -29,14 +45,14 @@ export const FeedbackForm = ({ experiment, onSubmit, handedness, trialProgress, 
 
   const isValid =
     selectedFaces.length > 0 &&
-    (!experiment.feedbackConfig.showTemperatureEstimate || temperatureEstimate !== undefined) &&
+    (!experiment.feedbackConfig.showTemperatureEstimate || tempFaces.some((t) => t > 0)) &&
     clarityEstimate !== undefined;
 
   const handleSubmit = () => {
     onSubmit({
       experimentId: experiment.id,
       selectedFaces,
-      temperatureEstimate,
+      temperatureEstimate: tempFaces,
       clarityEstimate,
       timestamp: Date.now(),
     });
@@ -46,11 +62,12 @@ export const FeedbackForm = ({ experiment, onSubmit, handedness, trialProgress, 
     onSubmit({
       experimentId: experiment.id,
       selectedFaces: [],
-      temperatureEstimate: "0",
+      temperatureEstimate: tempFaces,
+      // temperatureEstimate: "0",
       clarityEstimate: 0,
       timestamp: Date.now(),
     });
-  }
+  };
 
   return (
     <div className="flex-1 flex items-center justify-center px-5 py-10">
@@ -66,7 +83,8 @@ export const FeedbackForm = ({ experiment, onSubmit, handedness, trialProgress, 
         {malfunction && (
           <div className="mb-4 p-4 rounded-lg border border-yellow-400 bg-yellow-50 text-left">
             <p className="text-yellow-800 font-medium text-sm">
-              E&apos; possibile che si sia verificato un malfunzionamento del dispositivo. Se non hai sentito un cambiamento di temperatura ti preghiamo di avvisare il Tutor.
+              E&apos; possibile che si sia verificato un malfunzionamento del dispositivo. Se non
+              hai sentito un cambiamento di temperatura ti preghiamo di avvisare il Tutor.
             </p>
             <div className="mt-3 flex justify-center">
               <button
@@ -91,11 +109,12 @@ export const FeedbackForm = ({ experiment, onSubmit, handedness, trialProgress, 
               mode={experiment.feedbackConfig.faceSelection}
               selected={selectedFaces}
               onChange={setSelectedFaces}
+              onChangeTempFaces={setTempFaces}
               handedness={handedness}
             />
           </div>
 
-          {/* Temperature estimate */}
+          {/* Temperature estimate
           {experiment.feedbackConfig.showTemperatureEstimate && (
             <div className="flex flex-col gap-2">
               <label className="text-lg font-medium text-gray-900 text-left">
@@ -121,7 +140,7 @@ export const FeedbackForm = ({ experiment, onSubmit, handedness, trialProgress, 
                 <span>Molto caldo</span>
               </div>
             </div>
-          )}
+          )} */}
 
           {/* Clarity estimate — every trial */}
           <div className="flex flex-col gap-2">
@@ -159,18 +178,18 @@ export const FeedbackForm = ({ experiment, onSubmit, handedness, trialProgress, 
 
           <div className="mt-12 p-4 rounded-lg border border-red-400 bg-red-50 text-left">
             <p className="text-red-800 font-medium text-sm">
-              Se non hai avvertito alcuno stimolo termico, puoi saltare questa sezione cliccando sul pulsante "Salta test".
+              Se non hai avvertito alcuno stimolo termico, puoi saltare questa sezione cliccando sul
+              pulsante "Salta test".
             </p>
             <div className="mt-3 flex justify-center">
               <button
                 className="bg-red-400 hover:bg-red-500 text-white font-semibold px-6 py-2 rounded-lg cursor-pointer transition-colors"
-              onClick={handleSubmitNoFeedback}
+                onClick={handleSubmitNoFeedback}
               >
                 Salta test
               </button>
             </div>
           </div>
-
         </div>
       </div>
     </div>

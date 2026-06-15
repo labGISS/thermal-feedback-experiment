@@ -33,9 +33,9 @@ export interface TrialProgress {
 }
 
 export interface TwoBackStats {
-  correct: number;     // space pressed on a true 2-back match
-  wrong: number;       // space pressed on a non-match (false alarm)
-  missed: number;      // match occurred but space was not pressed
+  correct: number; // space pressed on a true 2-back match
+  wrong: number; // space pressed on a non-match (false alarm)
+  missed: number; // match occurred but space was not pressed
   totalMatches: number; // total positions that were genuine matches
 }
 
@@ -51,10 +51,10 @@ export interface FeedbackData {
   trialIndex?: number; // 0-based position within the experiment type
   experimentId: number;
   selectedFaces?: number[]; // cube faces the user identified
-  temperatureEstimate?: string; // 1–5 heat intensity
+  temperatureEstimate?: number[]; // 1–5 heat intensity
   clarityEstimate?: number; // 1–5 confidence in identifying the heated faces
   deviceValues?: ValuesMessage; // raw values from device
-  twoBackStats?: TwoBackStats;  // only present for Exp 2 trials
+  twoBackStats?: TwoBackStats; // only present for Exp 2 trials
   timestamp: number;
 }
 
