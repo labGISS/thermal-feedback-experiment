@@ -1,7 +1,8 @@
 export const API_BASE_URL = import.meta.env.VITE_API_URL ?? "/cube2/api";
 
 // export const MQTT_BROKER_URL = "ws://192.168.1.214:9001"; // WebSocket URL for MQTT broker
-export const MQTT_BROKER_URL = "ws://193.205.185.56:7080"; // WebSocket URL for MQTT broker
+// export const MQTT_BROKER_URL = "ws://193.205.185.56:7080"; // WebSocket URL for MQTT broker
+export const MQTT_BROKER_URL = "ws://172.16.165.12:7080"; // WebSocket URL for MQTT broker geosciences
 // export const MQTT_USERNAME = "user";
 // export const MQTT_PASSWORD = "password";
 export const MQTT_TOPICS = {
